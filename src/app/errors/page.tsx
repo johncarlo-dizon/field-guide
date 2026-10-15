@@ -63,7 +63,6 @@ export default function ErrorsPage() {
       {rows?.map((r) => (
         <Link key={r.id} href={`/errors/${r.id}`} style={card}>
           <b>{r.title}</b>
-          {r.errorText && <div style={{ color: "#5b6670", marginTop: 4 }}>{r.errorText}</div>}
           <div style={{ marginTop: 8, fontSize: 14, color: "#5b6670" }}>
             <span style={{ border: "1px solid #d9d6cc", borderRadius: 99, padding: "2px 8px", marginRight: 8 }}>
               {r.status}

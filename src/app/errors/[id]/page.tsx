@@ -70,12 +70,7 @@ export default function ErrorDetail() {
             {new Date(e.createdAt).toLocaleString()} &middot; {e.status}
           </div>
 
-          {e.errorText && (
-            <div style={card}>
-              <b>Error message</b>
-              <div style={{ marginTop: 4 }}>{e.errorText}</div>
-            </div>
-          )}
+
 
           <div style={card}>
             {e.blocks.length === 0 && <p>No steps yet.</p>}
@@ -98,14 +93,24 @@ export default function ErrorDetail() {
             )}
           </div>
 
-          {e.canDelete && (
-            <button
-              onClick={remove}
-              style={{ padding: "10px 16px", borderRadius: 10, color: "#c0392b", border: "1px solid #c0392b", background: "#fff", cursor: "pointer" }}
-            >
-              Delete
-            </button>
-          )}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {e.canEdit && (
+              <Link
+                href={`/errors/${id}/edit`}
+                style={{ padding: "10px 16px", borderRadius: 10, background: "#b5541a", color: "#fff", textDecoration: "none", fontWeight: 700 }}
+              >
+                Edit
+              </Link>
+            )}
+            {e.canDelete && (
+              <button
+                onClick={remove}
+                style={{ padding: "10px 16px", borderRadius: 10, color: "#c0392b", border: "1px solid #c0392b", background: "#fff", cursor: "pointer" }}
+              >
+                Delete
+              </button>
+            )}
+          </div>
           {!e.canEdit && (
             <p style={{ color: "#5b6670" }}>Only {e.authorName} can edit this entry.</p>
           )}
