@@ -23,6 +23,8 @@ export type Payload = {
 type B =
   | { key: number; type: "text"; content: string }
   | { key: number; type: "image"; attachmentId: string; caption: string };
+type Pending = { key: number; attachmentId: string; caption: string };
+type Composer = null | "text" | "image";
 
 type Props = {
   heading: string;
@@ -35,37 +37,62 @@ type Props = {
   onSubmit: (p: Payload) => Promise<string | null>;
 };
 
-const card = {
-  background: "#fff", border: "1px solid #d9d6cc", borderRadius: 14, padding: 16, margin: "12px 0",
+const ui = {
+  card: { background: "#fff", border: "1px solid #e4e4e4", borderRadius: 16, padding: 16, margin: "12px 0" },
+  field: {
+    width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid #e4e4e4",
+    background: "#fafafa", marginTop: 6, boxSizing: "border-box", font: "inherit",
+  },
+  btn: {
+    padding: "10px 14px", borderRadius: 10, border: "1px solid #e4e4e4", background: "#fafafa",
+    color: "#171717", cursor: "pointer", font: "inherit", fontWeight: 600,
+  },
+  dark: { background: "#262626", color: "#fff", border: "1px solid #262626" },
+  small: { padding: "6px 10px", fontSize: 14, fontWeight: 500 },
+  muted: { color: "#6b6b6b" },
 } as const;
-const field = {
-  width: "100%", padding: 10, borderRadius: 10, border: "1px solid #d9d6cc",
-  marginTop: 6, boxSizing: "border-box", font: "inherit",
-} as const;
-const btn = { padding: "8px 14px", borderRadius: 10, border: "1px solid #d9d6cc", background: "#fff", cursor: "pointer" } as const;
+
+function ImageIcon() {
+  return (
+    <svg
+      width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+    </svg>
+  );
+}
 
 export default function ErrorForm({
   heading, backHref, backLabel, submitLabel, showStatus, initial, onSubmit,
 }: Props) {
   const nextKey = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
+
   const [title, setTitle] = useState(initial?.title ?? "");
   const [status, setStatus] = useState<Status>(initial?.status ?? "draft");
-  const [blocks, setBlocks] = useState<B[]>(() => {
-    const src: InitialBlock[] =
-      initial && initial.blocks.length > 0
-        ? initial.blocks
-        : [{ type: "text", content: "", caption: "", attachmentId: null }];
-    return src.map((b): B =>
-      b.type === "image" && b.attachmentId
-        ? { key: nextKey.current++, type: "image", attachmentId: b.attachmentId, caption: b.caption }
-        : { key: nextKey.current++, type: "text", content: b.content }
-    );
-  });
+  const [blocks, setBlocks] = useState<B[]>(() =>
+    (initial?.blocks ?? []).flatMap((b): B[] => {
+      if (b.type === "image") {
+        return b.attachmentId
+          ? [{ key: nextKey.current++, type: "image", attachmentId: b.attachmentId, caption: b.caption }]
+          : [];
+      }
+      return [{ key: nextKey.current++, type: "text", content: b.content }];
+    })
+  );
+
+  const [composer, setComposer] = useState<Composer>(null);
+  const [draftText, setDraftText] = useState("");
+  const [pending, setPending] = useState<Pending[]>([]);
+  const [drag, setDrag] = useState(false);
+  const [uploading, setUploading] = useState(0);
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(0);
-  const [drag, setDrag] = useState(false);
+
+  /* ---------- pictures ---------- */
 
   const upload = useCallback(async (file: File) => {
     setMsg("");
@@ -77,7 +104,8 @@ export default function ErrorForm({
     if (res.status === 401) { window.location.href = "/"; return; }
     const data = await res.json().catch(() => ({}));
     if (data.ok) {
-      setBlocks((b) => [...b, { key: nextKey.current++, type: "image", attachmentId: data.id, caption: "" }]);
+      setPending((p) => [...p, { key: nextKey.current++, attachmentId: data.id, caption: "" }]);
+      setComposer("image"); // a pasted picture opens the picture card automatically
     } else {
       setMsg(data.error ?? "Could not upload the picture");
     }
@@ -119,8 +147,37 @@ export default function ErrorForm({
     }
   }
 
-  const addText = () =>
-    setBlocks((b) => [...b, { key: nextKey.current++, type: "text", content: "" }]);
+  /* ---------- the card that opens under the buttons ---------- */
+
+  const toggle = (kind: "text" | "image") => setComposer((c) => (c === kind ? null : kind));
+
+  function cancelComposer() {
+    setComposer(null);
+    setDraftText("");
+    setPending([]);
+  }
+
+  function addText() {
+    if (!draftText.trim()) return;
+    setBlocks((b) => [...b, { key: nextKey.current++, type: "text", content: draftText }]);
+    setDraftText("");
+    setComposer(null);
+  }
+
+  function addPictures() {
+    if (pending.length === 0) return;
+    setBlocks((b) => [
+      ...b,
+      ...pending.map((p): B => ({
+        key: nextKey.current++, type: "image", attachmentId: p.attachmentId, caption: p.caption,
+      })),
+    ]);
+    setPending([]);
+    setComposer(null);
+  }
+
+  /* ---------- the list of blocks already added ---------- */
+
   const setContent = (key: number, content: string) =>
     setBlocks((b) => b.map((x) => (x.key === key && x.type === "text" ? { ...x, content } : x)));
   const setCaption = (key: number, caption: string) =>
@@ -135,14 +192,24 @@ export default function ErrorForm({
       return c;
     });
 
+  /* ---------- save the whole entry ---------- */
+
   async function save() {
     setMsg("");
     if (!title.trim()) { setMsg("Please add a title"); return; }
+
+    // Anything still open in the card is included, so nothing typed is lost.
+    const all: B[] = [...blocks];
+    if (draftText.trim()) all.push({ key: -1, type: "text", content: draftText });
+    pending.forEach((p) =>
+      all.push({ key: -2, type: "image", attachmentId: p.attachmentId, caption: p.caption })
+    );
+
     setSaving(true);
     const err = await onSubmit({
       title,
       status,
-      blocks: blocks.map((b) =>
+      blocks: all.map((b) =>
         b.type === "text"
           ? { type: "text" as const, content: b.content }
           : { type: "image" as const, attachmentId: b.attachmentId, caption: b.caption }
@@ -151,99 +218,189 @@ export default function ErrorForm({
     if (err) { setMsg(err); setSaving(false); }
   }
 
+  /* ---------- screen ---------- */
+
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-      <p style={{ margin: 0 }}><Link href={backHref}>&larr; {backLabel}</Link></p>
-      <h1 style={{ marginBottom: 4 }}>{heading}</h1>
+    <div style={{ background: "#f5f5f5", minHeight: "100vh" }}>
+      <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
+        <p style={{ margin: 0 }}><Link href={backHref}>&larr; {backLabel}</Link></p>
+        <h1 style={{ marginBottom: 4 }}>{heading}</h1>
 
-      <div style={card}>
-        <label>
-          <b>Title</b>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200}
-            placeholder="Short name of the problem" style={field} />
-        </label>
-
-        {showStatus && (
-          <label style={{ display: "block", marginTop: 12 }}>
-            <b>Status</b>
-            <select value={status} onChange={(e) => setStatus(e.target.value as Status)} style={field}>
-              <option value="draft">Draft</option>
-              <option value="verified">Verified (the fix works)</option>
-              <option value="outdated">Outdated (no longer correct)</option>
-            </select>
+        {/* Title and the two add buttons */}
+        <div style={ui.card}>
+          <label>
+            <b>Title</b>
+            <input
+              value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200}
+              placeholder="Short name of the problem" style={ui.field}
+            />
           </label>
-        )}
-      </div>
 
-      <h3 style={{ marginBottom: 0 }}>How to fix it</h3>
-        <p style={{ marginTop: 4, color: "#5b6670" }}>
-        Paste a screenshot of the error (Ctrl+V), then add the steps. Mix text and pictures in any order.
-      </p>
-
-      {blocks.map((b, i) => (
-        <div key={b.key} style={card}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <b style={{ flex: 1 }}>{b.type === "text" ? "Text" : "Picture"}</b>
-            <button style={btn} onClick={() => move(i, -1)} disabled={i === 0}>&uarr;</button>
-            <button style={btn} onClick={() => move(i, 1)} disabled={i === blocks.length - 1}>&darr;</button>
-            <button style={{ ...btn, color: "#c0392b" }} onClick={() => remove(b.key)}>Remove</button>
-          </div>
-
-          {b.type === "text" ? (
-            <textarea rows={3} value={b.content} onChange={(e) => setContent(b.key, e.target.value)}
-              maxLength={5000} placeholder="Write an instruction or a note" style={field} />
-          ) : (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/api/attachments/${b.attachmentId}?thumb=1`}
-                alt="Uploaded screenshot"
-                style={{ maxWidth: "100%", marginTop: 8, borderRadius: 10, border: "1px solid #d9d6cc" }}
-              />
-              <input value={b.caption} onChange={(e) => setCaption(b.key, e.target.value)} maxLength={200}
-                placeholder="Caption (optional)" style={field} />
-            </>
+          {showStatus && (
+            <label style={{ display: "block", marginTop: 12 }}>
+              <b>Status</b>
+              <select value={status} onChange={(e) => setStatus(e.target.value as Status)} style={ui.field}>
+                <option value="draft">Draft</option>
+                <option value="verified">Verified (the fix works)</option>
+                <option value="outdated">Outdated (no longer correct)</option>
+              </select>
+            </label>
           )}
+
+          <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+            <button
+              type="button" onClick={() => toggle("text")}
+              style={{ ...ui.btn, flex: 1, ...(composer === "text" ? ui.dark : {}) }}
+            >
+              Text
+            </button>
+            <button
+              type="button" onClick={() => toggle("image")}
+              aria-label="Add a picture" title="Add a picture"
+              style={{
+                ...ui.btn, flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+                ...(composer === "image" ? ui.dark : {}),
+              }}
+            >
+              <ImageIcon />
+            </button>
+          </div>
         </div>
-      ))}
 
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-        onDragLeave={() => setDrag(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDrag(false);
-          Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/")).forEach(upload);
-        }}
-        style={{
-          border: "2px dashed " + (drag ? "#b5541a" : "#d9d6cc"),
-          borderRadius: 14, padding: 24, textAlign: "center", color: "#5b6670", margin: "12px 0",
-        }}
-      >
-        Press <b>Ctrl+V</b> to paste a screenshot, or drag a picture here
-      </div>
+        {/* Text card */}
+        {composer === "text" && (
+          <div style={ui.card}>
+            <textarea
+              autoFocus rows={4} value={draftText} onChange={(e) => setDraftText(e.target.value)}
+              maxLength={5000} placeholder="Write an instruction or a note"
+              style={{ ...ui.field, marginTop: 0 }}
+            />
+            <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+              <button
+                type="button" onClick={addText} disabled={!draftText.trim()}
+                style={{ ...ui.btn, ...ui.dark, flex: 1, opacity: draftText.trim() ? 1 : 0.5 }}
+              >
+                Add
+              </button>
+              <button type="button" onClick={cancelComposer} style={{ ...ui.btn, flex: 1 }}>Cancel</button>
+            </div>
+          </div>
+        )}
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button style={btn} onClick={addText}>+ Text</button>
-        <button style={btn} onClick={() => fileRef.current?.click()}>+ Choose picture</button>
-        <button style={btn} onClick={pasteFromClipboard}>Paste from clipboard</button>
-        <input
-          ref={fileRef} type="file" accept="image/*" multiple hidden
-          onChange={(e) => { Array.from(e.target.files ?? []).forEach(upload); e.target.value = ""; }}
-        />
-      </div>
-      {uploading > 0 && <p style={{ color: "#5b6670" }}>Uploading picture...</p>}
+        {/* Picture card */}
+        {composer === "image" && (
+          <div style={ui.card}>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+              onDragLeave={() => setDrag(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDrag(false);
+                Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/")).forEach(upload);
+              }}
+              style={{
+                border: "2px dashed " + (drag ? "#262626" : "#d4d4d4"), borderRadius: 12,
+                padding: 20, textAlign: "center", background: "#fafafa",
+              }}
+            >
+              <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                <button type="button" style={ui.btn} onClick={() => fileRef.current?.click()}>
+                  Choose image
+                </button>
+                <button type="button" style={ui.btn} onClick={pasteFromClipboard}>
+                  Paste from clipboard
+                </button>
+              </div>
+   
+              <input
+                ref={fileRef} type="file" accept="image/*" multiple hidden
+                onChange={(e) => { Array.from(e.target.files ?? []).forEach(upload); e.target.value = ""; }}
+              />
+            </div>
 
-      {msg && <p style={{ color: "#c0392b" }}>{msg}</p>}
-      <p>
+            {uploading > 0 && <p style={ui.muted}>Uploading picture...</p>}
+
+            {pending.map((p) => (
+              <div key={p.key} style={{ marginTop: 12 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/attachments/${p.attachmentId}?thumb=1`} alt="Uploaded screenshot"
+                  style={{ maxWidth: "100%", borderRadius: 10, border: "1px solid #e4e4e4" }}
+                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    value={p.caption} maxLength={200} placeholder="Caption (optional)"
+                    onChange={(e) =>
+                      setPending((list) => list.map((x) => (x.key === p.key ? { ...x, caption: e.target.value } : x)))
+                    }
+                    style={ui.field}
+                  />
+                  <button
+                    type="button" style={{ ...ui.btn, ...ui.small, marginTop: 6 }}
+                    onClick={() => setPending((list) => list.filter((x) => x.key !== p.key))}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+              <button
+                type="button" onClick={addPictures} disabled={pending.length === 0}
+                style={{ ...ui.btn, ...ui.dark, flex: 1, opacity: pending.length ? 1 : 0.5 }}
+              >
+                Add
+              </button>
+              <button type="button" onClick={cancelComposer} style={{ ...ui.btn, flex: 1 }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+      
+        {blocks.length === 0 && (
+          <div style={{ ...ui.card, ...ui.muted }}>Nothing added yet. Use the Text or picture button above.</div>
+        )}
+
+        {blocks.map((b, i) => (
+          <div key={b.key} style={ui.card}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <b style={{ flex: 1 }}>{b.type === "text" ? "Text" : "Picture"}</b>
+              <button type="button" style={{ ...ui.btn, ...ui.small }} onClick={() => move(i, -1)} disabled={i === 0}>&uarr;</button>
+              <button type="button" style={{ ...ui.btn, ...ui.small }} onClick={() => move(i, 1)} disabled={i === blocks.length - 1}>&darr;</button>
+              <button type="button" style={{ ...ui.btn, ...ui.small, color: "#c0392b" }} onClick={() => remove(b.key)}>Remove</button>
+            </div>
+
+            {b.type === "text" ? (
+              <textarea
+                rows={3} value={b.content} onChange={(e) => setContent(b.key, e.target.value)}
+                maxLength={5000} style={ui.field}
+              />
+            ) : (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/attachments/${b.attachmentId}?thumb=1`} alt="Uploaded screenshot"
+                  style={{ maxWidth: "100%", marginTop: 8, borderRadius: 10, border: "1px solid #e4e4e4" }}
+                />
+                <input
+                  value={b.caption} onChange={(e) => setCaption(b.key, e.target.value)} maxLength={200}
+                  placeholder="Caption (optional)" style={ui.field}
+                />
+              </>
+            )}
+          </div>
+        ))}
+
+        {msg && <p style={{ color: "#c0392b" }}>{msg}</p>}
+
         <button
-          onClick={save}
-          disabled={saving || uploading > 0}
-          style={{ ...btn, background: "#b5541a", color: "#fff", border: "1px solid #b5541a", fontWeight: 700 }}
+          type="button" onClick={save} disabled={saving || uploading > 0}
+          style={{ ...ui.btn, ...ui.dark, width: "100%", padding: "14px", marginTop: 8, opacity: saving ? 0.6 : 1 }}
         >
           {saving ? "Saving..." : submitLabel}
         </button>
-      </p>
-    </main>
+      </main>
+    </div>
   );
 }
