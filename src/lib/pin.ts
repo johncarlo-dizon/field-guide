@@ -1,7 +1,14 @@
-import { createHmac } from "crypto";
+import { createHmac, randomInt } from "crypto";
 import bcrypt from "bcryptjs";
 
 // PIN handling. No Next.js imports here, so scripts can use it too.
+// A random 4-digit PIN that passes the easy-PIN rules. Used for temporary PINs.
+export function randomPin(): string {
+  for (;;) {
+    const p = String(randomInt(0, 10000)).padStart(4, "0");
+    if (!pinProblem(p)) return p;
+  }
+}
 
 function pepper(): string {
   const p = process.env.PIN_PEPPER;
