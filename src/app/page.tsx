@@ -125,6 +125,7 @@ export default function Home() {
           <b>Welcome, {me.displayName}</b>
           <p style={{ margin: "4px 0", color: "#5b6670" }}>{me.position}{me.role === "admin" ? " (admin)" : ""}</p>
           <p><Link href="/errors">Open the error library</Link></p>
+<p><Link href="/procedures">Open the procedures</Link></p>
           <button style={button} onClick={logout}>Log out</button>
         </div>
       )}

@@ -29,8 +29,8 @@ async function main() {
   console.log("Seeding users (temporary PINs are shown only once):");
   await ensureUser({ username: "admin", displayName: "Administrator", position: "Admin", role: "admin" });
   if (process.argv.includes("--samples")) {
-    await ensureUser({ username: "ana", displayName: "Ana Reyes", position: "Field Support", role: "user" });
-    await ensureUser({ username: "marco", displayName: "Marco Cruz", position: "Senior Field Support", role: "user" });
+    await ensureUser({ username: "yops", displayName: "Christian Mark Tabora", position: "IT Supervisor", role: "user" });
+    await ensureUser({ username: "jv", displayName: "John Carlo Dizon", position: "IT Assistant", role: "user" });
   }
   await pool.end();
 }

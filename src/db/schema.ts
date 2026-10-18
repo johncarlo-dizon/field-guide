@@ -62,3 +62,33 @@ export const errorBlocks = pgTable("error_blocks", {
   attachmentId: uuid("attachment_id").references(() => attachments.id),
   caption: text("caption").notNull().default(""),
 }, (t) => [index("error_blocks_error_idx").on(t.errorId)]);
+
+
+/* ---------- Procedures: procedure > processes > text and picture blocks ---------- */
+
+export const procedures = pgTable("procedures", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  authorId: uuid("author_id").notNull().references(() => users.id),
+  createdAt: createdAt(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  deletedAt: ts("deleted_at"),
+  version: integer("version").notNull().default(1),
+}, (t) => [index("procedures_author_idx").on(t.authorId)]);
+
+export const processes = pgTable("processes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  procedureId: uuid("procedure_id").notNull().references(() => procedures.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(),
+  title: text("title").notNull(),
+}, (t) => [index("processes_procedure_idx").on(t.procedureId)]);
+
+export const processBlocks = pgTable("process_blocks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  processId: uuid("process_id").notNull().references(() => processes.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(),
+  type: text("type", { enum: ["text", "image"] }).notNull(),
+  content: text("content").notNull().default(""),
+  attachmentId: uuid("attachment_id").references(() => attachments.id),
+  caption: text("caption").notNull().default(""),
+}, (t) => [index("process_blocks_process_idx").on(t.processId)]);
