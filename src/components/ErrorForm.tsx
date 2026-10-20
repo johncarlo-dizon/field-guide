@@ -1,5 +1,5 @@
 "use client";
-
+import AppShell from "@/components/AppShell";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -221,9 +221,9 @@ export default function ErrorForm({
   /* ---------- screen ---------- */
 
   return (
-    <div style={{ background: "#f5f5f5", minHeight: "100vh" }}>
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-        <p style={{ margin: 0 }}><Link href={backHref}>&larr; {backLabel}</Link></p>
+    <AppShell>
+      <main style={{ padding: "16px 0 32px" }}>
+               <p style={{ margin: "0 0 4px" }}><Link href={backHref} style={{ ...ui.muted, fontSize: 14 }}>&larr; {backLabel}</Link></p>
         <h1 style={{ marginBottom: 4 }}>{heading}</h1>
 
         {/* Title and the two add buttons */}
@@ -401,6 +401,6 @@ export default function ErrorForm({
           {saving ? "Saving..." : submitLabel}
         </button>
       </main>
-    </div>
+    </AppShell>
   );
 }

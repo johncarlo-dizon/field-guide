@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
+import { badge, color, statusColor, ui } from "@/lib/ui";
 
 type Block = {
   id: string;
@@ -15,7 +17,6 @@ type Block = {
 type Detail = {
   id: string;
   title: string;
-  errorText: string;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -25,10 +26,6 @@ type Detail = {
   canEdit: boolean;
   canDelete: boolean;
 };
-
-const card = {
-  background: "#fff", border: "1px solid #d9d6cc", borderRadius: 14, padding: 16, margin: "12px 0",
-} as const;
 
 export default function ErrorDetail() {
   const params = useParams();
@@ -56,48 +53,51 @@ export default function ErrorDetail() {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-      <p style={{ margin: 0 }}><Link href="/errors">&larr; Back to the list</Link></p>
+    <AppShell>
+      <p style={{ margin: "16px 0 0" }}>
+        <Link href="/errors" style={{ ...ui.muted, textDecoration: "none", fontSize: 14 }}>&larr; Back to the list</Link>
+      </p>
 
-      {msg && <p style={{ color: "#c0392b" }}>{msg}</p>}
-      {!e && !msg && <p>Loading...</p>}
+      {msg && <p style={{ color: color.danger }}>{msg}</p>}
+      {!e && !msg && <p style={ui.muted}>Loading...</p>}
 
       {e && (
         <>
-          <h1 style={{ marginBottom: 4 }}>{e.title}</h1>
-          <div style={{ color: "#5b6670" }}>
-            Added by <b>{e.authorName}</b> ({e.authorPosition}) &middot;{" "}
-            {new Date(e.createdAt).toLocaleString()} &middot; {e.status}
+          <h1 style={{ margin: "8px 0 8px", fontSize: 26, lineHeight: 1.25 }}>{e.title}</h1>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 14, ...ui.muted }}>
+            <span style={badge(statusColor(e.status))}>{e.status}</span>
+            <span>
+              Added by <b style={{ color: color.ink }}>{e.authorName}</b> ({e.authorPosition}) ·{" "}
+              {new Date(e.createdAt).toLocaleString()}
+            </span>
           </div>
 
-
-
-          <div style={card}>
-            {e.blocks.length === 0 && <p>No steps yet.</p>}
+          <div style={{ ...ui.card, marginTop: 16 }}>
+            {e.blocks.length === 0 && <p style={{ margin: 0, ...ui.muted }}>Nothing here yet.</p>}
             {e.blocks.map((b) =>
               b.type === "text" ? (
-                <p key={b.id} style={{ whiteSpace: "pre-wrap" }}>{b.content}</p>
+                <p key={b.id} style={{ whiteSpace: "pre-wrap", margin: "0 0 12px", lineHeight: 1.55 }}>{b.content}</p>
               ) : (
-                <figure key={b.id} style={{ margin: "12px 0" }}>
+                <figure key={b.id} style={{ margin: "0 0 12px" }}>
                   <a href={`/api/attachments/${b.attachmentId}`} target="_blank" rel="noreferrer">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`/api/attachments/${b.attachmentId}`}
                       alt={b.caption || "Screenshot"}
-                      style={{ maxWidth: "100%", borderRadius: 10, border: "1px solid #d9d6cc" }}
+                      style={{ maxWidth: "100%", borderRadius: 10, border: `1px solid ${color.line}`, display: "block" }}
                     />
                   </a>
-                  {b.caption && <figcaption style={{ color: "#5b6670", marginTop: 4 }}>{b.caption}</figcaption>}
+                  {b.caption && <figcaption style={{ marginTop: 6, fontSize: 14, ...ui.muted }}>{b.caption}</figcaption>}
                 </figure>
               )
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, margin: "16px 0 8px", alignItems: "center" }}>
             {e.canEdit && (
               <Link
                 href={`/errors/${id}/edit`}
-                style={{ padding: "10px 16px", borderRadius: 10, background: "#b5541a", color: "#fff", textDecoration: "none", fontWeight: 700 }}
+                style={{ ...ui.btn, ...ui.dark, display: "inline-flex", alignItems: "center", minHeight: 44 }}
               >
                 Edit
               </Link>
@@ -105,17 +105,16 @@ export default function ErrorDetail() {
             {e.canDelete && (
               <button
                 onClick={remove}
-                style={{ padding: "10px 16px", borderRadius: 10, color: "#c0392b", border: "1px solid #c0392b", background: "#fff", cursor: "pointer" }}
+                style={{ ...ui.btn, minHeight: 44, color: color.danger, borderColor: color.danger, background: color.card }}
               >
                 Delete
               </button>
             )}
           </div>
-          {!e.canEdit && (
-            <p style={{ color: "#5b6670" }}>Only {e.authorName} can edit this entry.</p>
-          )}
+          {!e.canEdit && <p style={ui.muted}>Only {e.authorName} can edit this entry.</p>}
+          <div style={{ height: 32 }} />
         </>
       )}
-    </main>
+    </AppShell>
   );
 }

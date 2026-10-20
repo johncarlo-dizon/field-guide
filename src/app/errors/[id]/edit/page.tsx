@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
 import ErrorForm, { type Initial, type Payload } from "@/components/ErrorForm";
+import { color, ui } from "@/lib/ui";
 
 type LoadedBlock = {
   type: "text" | "image";
@@ -54,14 +56,20 @@ export default function EditError() {
 
   if (msg) {
     return (
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-        <p style={{ margin: 0 }}><Link href={`/errors/${id}`}>&larr; Back to the error</Link></p>
-        <p style={{ color: "#c0392b" }}>{msg}</p>
-      </main>
+      <AppShell>
+        <p style={{ margin: "16px 0 0" }}>
+          <Link href={`/errors/${id}`} style={{ ...ui.muted, textDecoration: "none", fontSize: 14 }}>&larr; Back to the error</Link>
+        </p>
+        <p style={{ color: color.danger }}>{msg}</p>
+      </AppShell>
     );
   }
   if (!initial) {
-    return <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}><p>Loading...</p></main>;
+    return (
+      <AppShell>
+        <p style={ui.muted}>Loading...</p>
+      </AppShell>
+    );
   }
 
   return (
