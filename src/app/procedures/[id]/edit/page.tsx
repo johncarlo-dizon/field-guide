@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
 import ProcedureForm, { type ProcInitial, type ProcPayload } from "@/components/ProcedureForm";
+import { color, ui } from "@/lib/ui";
 
 type LoadedBlock = {
   type: "text" | "image";
@@ -57,14 +59,20 @@ export default function EditProcedure() {
 
   if (msg) {
     return (
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-        <p style={{ margin: 0 }}><Link href={`/procedures/${id}`}>&larr; Back to the procedure</Link></p>
-        <p style={{ color: "#c0392b" }}>{msg}</p>
-      </main>
+      <AppShell>
+        <p style={{ margin: "16px 0 0" }}>
+          <Link href={`/procedures/${id}`} style={{ ...ui.muted, fontSize: 14 }}>&larr; Back to the procedure</Link>
+        </p>
+        <p style={{ color: color.danger }}>{msg}</p>
+      </AppShell>
     );
   }
   if (!initial) {
-    return <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}><p>Loading...</p></main>;
+    return (
+      <AppShell>
+        <p style={ui.muted}>Loading...</p>
+      </AppShell>
+    );
   }
 
   return (

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
+import { color, ui } from "@/lib/ui";
 
 type Row = {
   id: string;
@@ -11,11 +13,6 @@ type Row = {
   authorPosition: string;
   processCount: number;
 };
-
-const card = {
-  background: "#fff", border: "1px solid #e4e4e4", borderRadius: 16, padding: 16, margin: "12px 0",
-  display: "block", color: "inherit", textDecoration: "none",
-} as const;
 
 export default function ProceduresPage() {
   const [q, setQ] = useState("");
@@ -34,41 +31,51 @@ export default function ProceduresPage() {
   }, [q]);
 
   return (
-    <div style={{ background: "#f5f5f5", minHeight: "100vh" }}>
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-        <p style={{ margin: 0 }}><Link href="/">&larr; Home</Link></p>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0" }}>
-          <h1 style={{ margin: 0, flex: 1 }}>Procedures</h1>
-          <Link
-            href="/procedures/new"
-            style={{ padding: "8px 14px", borderRadius: 10, background: "#262626", color: "#fff", textDecoration: "none", fontWeight: 600 }}
-          >
-            + Add procedure
-          </Link>
-        </div>
+    <AppShell>
+      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+        <label
+          style={{
+            flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, minHeight: 46, padding: "0 14px",
+            borderRadius: 12, border: `1px solid ${color.line}`, background: color.card,
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color.mut} strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search procedures"
+            aria-label="Search"
+            style={{ flex: 1, minWidth: 0, border: 0, background: "transparent", font: "inherit", color: color.ink, outline: "none" }}
+          />
+        </label>
+        <Link
+          href="/procedures/new"
+          style={{ ...ui.btn, ...ui.dark, display: "flex", alignItems: "center", minHeight: 46, padding: "0 18px", whiteSpace: "nowrap" }}
+        >
+          + Add procedure
+        </Link>
+      </div>
 
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search a procedure"
-          autoFocus
-          style={{ width: "100%", padding: 12, borderRadius: 10, border: "1px solid #e4e4e4", boxSizing: "border-box", font: "inherit" }}
-        />
+      {msg && <p style={{ color: color.danger }}>{msg}</p>}
+      {rows === null && !msg && <p style={ui.muted}>Loading...</p>}
+      {rows && rows.length === 0 && <p style={ui.muted}>No procedures found.</p>}
 
-        {msg && <p style={{ color: "#c0392b" }}>{msg}</p>}
-        {rows === null && !msg && <p>Loading...</p>}
-        {rows && rows.length === 0 && <p>No procedures found.</p>}
-
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, margin: "16px 0 32px" }}>
         {rows?.map((r) => (
-          <Link key={r.id} href={`/procedures/${r.id}`} style={card}>
-            <b style={{ fontSize: 18 }}>{r.title}</b>
-            <div style={{ marginTop: 8, fontSize: 14, color: "#6b6b6b" }}>
-              {r.processCount} {r.processCount === 1 ? "process" : "processes"} &middot; Added by{" "}
-              <b>{r.authorName}</b> ({r.authorPosition}) &middot; {new Date(r.updatedAt).toLocaleDateString()}
+          <Link key={r.id} href={`/procedures/${r.id}`} style={{ ...ui.card, display: "block", color: "inherit" }}>
+            <b style={{ fontSize: 18, lineHeight: 1.3 }}>{r.title}</b>
+            <div style={{ marginTop: 8, fontSize: 14, ...ui.muted }}>
+              {r.processCount} {r.processCount === 1 ? "process" : "processes"}
+            </div>
+            <div style={{ marginTop: 6, fontSize: 13, ...ui.muted }}>
+              Added by <b style={{ color: color.ink }}>{r.authorName}</b> ({r.authorPosition}) · {new Date(r.updatedAt).toLocaleDateString()}
             </div>
           </Link>
         ))}
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

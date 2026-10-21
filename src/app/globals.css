@@ -161,3 +161,22 @@ textarea {
   .lg-shake { animation: none; }
   .lg-person { transition: none; }
 }
+
+.lg-page {
+  position: relative;
+  background: #ffffff;
+}
+.lg-wrap,
+.lg-foot {
+  position: relative;
+  z-index: 1;
+}
+.lg-person {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 16px rgba(0, 0, 0, 0.05);
+}
+.lg-key {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.lg-search {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}

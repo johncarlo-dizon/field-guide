@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { color, ui } from "@/lib/ui";
-
+import ContourBackground from "@/components/ContourBackground";
 type Me = { id: string; displayName: string; position: string; role: string; mustChangePin: boolean };
 type Person = { id: string; displayName: string; position: string };
 type Reply = { status: number; ok?: boolean; error?: string; user?: Me };
@@ -257,6 +257,7 @@ export default function LoginScreen({ people, user }: { people: Person[]; user: 
 
   return (
     <div className="lg-page">
+      <ContourBackground />
       <div className="lg-wrap">
         <Logo />
 
@@ -264,7 +265,7 @@ export default function LoginScreen({ people, user }: { people: Person[]; user: 
           /* ---------- choose your own PIN ---------- */
           <form
             onSubmit={(e) => { e.preventDefault(); if (changeReady) changePin(); }}
-            style={{ ...ui.card, padding: 28, width: "100%", maxWidth: 380, marginTop: 28 }}
+                       style={{ ...ui.card, padding: 28, width: "100%", maxWidth: 380, marginTop: 28, boxShadow: "0 8px 24px rgba(0,0,0,0.06)" }}
           >
             <h1 style={{ margin: 0, fontSize: 24 }}>Set your own PIN</h1>
             <p style={{ margin: "6px 0 0", ...ui.muted }}>

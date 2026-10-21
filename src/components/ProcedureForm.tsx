@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InitialBlock } from "@/components/ErrorForm";
-
+import AppShell from "@/components/AppShell";
 type B =
   | { key: number; type: "text"; content: string }
   | { key: number; type: "image"; attachmentId: string; caption: string };
@@ -290,9 +290,9 @@ export default function ProcedureForm({
   /* ---------- screen ---------- */
 
   return (
-    <div style={{ background: "#f5f5f5", minHeight: "100vh" }}>
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-        <p style={{ margin: 0 }}><Link href={backHref}>&larr; {backLabel}</Link></p>
+    <AppShell>
+      <main style={{ padding: "16px 0 32px" }}>
+        <p style={{ margin: "0 0 4px" }}><Link href={backHref} style={{ ...ui.muted, fontSize: 14 }}>&larr; {backLabel}</Link></p>
         <h1 style={{ marginBottom: 4 }}>{heading}</h1>
 
         <div style={ui.card}>
@@ -480,6 +480,6 @@ export default function ProcedureForm({
           {saving ? "Saving..." : submitLabel}
         </button>
       </main>
-    </div>
+    </AppShell>
   );
 }

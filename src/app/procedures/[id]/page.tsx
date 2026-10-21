@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
+import { color, ui } from "@/lib/ui";
 
 type Block = {
   id: string;
@@ -23,14 +25,6 @@ type Detail = {
   canEdit: boolean;
   canDelete: boolean;
 };
-
-const card = {
-  background: "#fff", border: "1px solid #e4e4e4", borderRadius: 16, margin: "12px 0", overflow: "hidden",
-} as const;
-const btn = {
-  padding: "8px 14px", borderRadius: 10, border: "1px solid #e4e4e4", background: "#fafafa",
-  cursor: "pointer", font: "inherit", fontWeight: 600,
-} as const;
 
 export default function ProcedureDetail() {
   const params = useParams();
@@ -67,61 +61,83 @@ export default function ProcedureDetail() {
   }
 
   return (
-    <div style={{ background: "#f5f5f5", minHeight: "100vh" }}>
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-        <p style={{ margin: 0 }}><Link href="/procedures">&larr; All procedures</Link></p>
+    <AppShell>
+      <p style={{ margin: "16px 0 0" }}>
+        <Link href="/procedures" style={{ ...ui.muted, fontSize: 14 }}>&larr; All procedures</Link>
+      </p>
 
-        {msg && <p style={{ color: "#c0392b" }}>{msg}</p>}
-        {!p && !msg && <p>Loading...</p>}
+      {msg && <p style={{ color: color.danger }}>{msg}</p>}
+      {!p && !msg && <p style={ui.muted}>Loading...</p>}
 
-        {p && (
-          <>
-            <h1 style={{ marginBottom: 4 }}>{p.title}</h1>
-            <div style={{ color: "#6b6b6b" }}>
-              Added by <b>{p.authorName}</b> ({p.authorPosition}) &middot; updated{" "}
-              {new Date(p.updatedAt).toLocaleDateString()}
-            </div>
+      {p && (
+        <>
+          <h1 style={{ margin: "8px 0 8px", fontSize: 26, lineHeight: 1.25 }}>{p.title}</h1>
+          <div style={{ fontSize: 14, ...ui.muted }}>
+            Added by <b style={{ color: color.ink }}>{p.authorName}</b> ({p.authorPosition}) · updated{" "}
+            {new Date(p.updatedAt).toLocaleDateString()}
+          </div>
 
-            {p.processes.length > 0 && (
-              <p style={{ margin: "16px 0 0" }}>
-                <button style={btn} onClick={toggleAll}>{allOpen ? "Collapse all" : "Expand all"}</button>
-              </p>
-            )}
-            {p.processes.length === 0 && <p>This procedure has no processes yet.</p>}
+          {p.processes.length > 0 && (
+            <p style={{ margin: "16px 0 0" }}>
+              <button onClick={toggleAll} style={{ ...ui.btn, ...ui.small }}>
+                {allOpen ? "Collapse all" : "Expand all"}
+              </button>
+            </p>
+          )}
+          {p.processes.length === 0 && <p style={ui.muted}>This procedure has no processes yet.</p>}
 
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
             {p.processes.map((proc, i) => {
               const isOpen = !!open[proc.id];
               return (
-                <div key={proc.id} style={card}>
+                <div key={proc.id} style={{ ...ui.card, padding: 0, overflow: "hidden" }}>
                   <button
                     onClick={() => setOpen((o) => ({ ...o, [proc.id]: !o[proc.id] }))}
+                    aria-expanded={isOpen}
                     style={{
-                      width: "100%", textAlign: "left", padding: 16, border: "none", background: "#fff",
-                      cursor: "pointer", font: "inherit", display: "flex", gap: 12, alignItems: "center",
+                      width: "100%", textAlign: "left", padding: 16, border: 0, background: "transparent",
+                      cursor: "pointer", font: "inherit", color: color.ink, display: "flex", gap: 12, alignItems: "center",
                     }}
                   >
-                    <span style={{ color: "#6b6b6b", width: 24 }}>{i + 1}.</span>
+                    <span
+                      style={{
+                        width: 28, height: 28, borderRadius: "50%", background: color.dark, color: "#ffffff",
+                        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, flex: "none",
+                      }}
+                    >
+                      {i + 1}
+                    </span>
                     <b style={{ flex: 1, fontSize: 17 }}>{proc.title}</b>
-                    <span style={{ color: "#6b6b6b" }}>{isOpen ? "▾" : "▸"}</span>
+                    <svg
+                      width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color.mut} strokeWidth="2"
+                      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                      style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}
+                    >
+                      <path d="m9 6 6 6-6 6" />
+                    </svg>
                   </button>
 
                   {isOpen && (
-                    <div style={{ padding: "0 16px 16px", borderTop: "1px solid #eee" }}>
-                      {proc.blocks.length === 0 && <p style={{ color: "#6b6b6b" }}>Nothing added to this process yet.</p>}
+                    <div style={{ padding: "4px 16px 16px", borderTop: `1px solid ${color.line}` }}>
+                      {proc.blocks.length === 0 && (
+                        <p style={ui.muted}>Nothing added to this process yet.</p>
+                      )}
                       {proc.blocks.map((b) =>
                         b.type === "text" ? (
-                          <p key={b.id} style={{ whiteSpace: "pre-wrap" }}>{b.content}</p>
+                          <p key={b.id} style={{ whiteSpace: "pre-wrap", lineHeight: 1.55, margin: "12px 0 0" }}>{b.content}</p>
                         ) : (
-                          <figure key={b.id} style={{ margin: "12px 0" }}>
+                          <figure key={b.id} style={{ margin: "12px 0 0" }}>
                             <a href={`/api/attachments/${b.attachmentId}`} target="_blank" rel="noreferrer">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={`/api/attachments/${b.attachmentId}`}
                                 alt={b.caption || "Screenshot"}
-                                style={{ maxWidth: "100%", borderRadius: 10, border: "1px solid #e4e4e4" }}
+                                style={{ maxWidth: "100%", borderRadius: 10, border: `1px solid ${color.line}`, display: "block" }}
                               />
                             </a>
-                            {b.caption && <figcaption style={{ color: "#6b6b6b", marginTop: 4 }}>{b.caption}</figcaption>}
+                            {b.caption && (
+                              <figcaption style={{ marginTop: 6, fontSize: 14, ...ui.muted }}>{b.caption}</figcaption>
+                            )}
                           </figure>
                         )
                       )}
@@ -130,28 +146,30 @@ export default function ProcedureDetail() {
                 </div>
               );
             })}
+          </div>
 
-            <div style={{ display: "flex", gap: 8, marginTop: 16, alignItems: "center" }}>
-              {p.canEdit && (
-                <Link
-                  href={`/procedures/${id}/edit`}
-                  style={{ padding: "8px 14px", borderRadius: 10, background: "#262626", color: "#fff", textDecoration: "none", fontWeight: 600 }}
-                >
-                  Edit
-                </Link>
-              )}
-              {p.canDelete && (
-                <button style={{ ...btn, color: "#c0392b", borderColor: "#c0392b", background: "#fff" }} onClick={remove}>
-                  Delete
-                </button>
-              )}
-            </div>
-            {!p.canEdit && (
-              <p style={{ color: "#6b6b6b" }}>Only {p.authorName} can edit this procedure.</p>
+          <div style={{ display: "flex", gap: 8, margin: "16px 0 8px", alignItems: "center" }}>
+            {p.canEdit && (
+              <Link
+                href={`/procedures/${id}/edit`}
+                style={{ ...ui.btn, ...ui.dark, display: "inline-flex", alignItems: "center", minHeight: 44 }}
+              >
+                Edit
+              </Link>
             )}
-          </>
-        )}
-      </main>
-    </div>
+            {p.canDelete && (
+              <button
+                onClick={remove}
+                style={{ ...ui.btn, minHeight: 44, color: color.danger, borderColor: color.danger, background: color.card }}
+              >
+                Delete
+              </button>
+            )}
+          </div>
+          {!p.canEdit && <p style={ui.muted}>Only {p.authorName} can edit this procedure.</p>}
+          <div style={{ height: 32 }} />
+        </>
+      )}
+    </AppShell>
   );
 }

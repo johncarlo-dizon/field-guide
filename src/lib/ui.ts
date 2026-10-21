@@ -20,6 +20,7 @@ export const ui = {
     background: color.faint, boxSizing: "border-box", font: "inherit", color: color.ink,
   },
   btn: {
+    boxSizing: "border-box",
     padding: "10px 14px", borderRadius: 12, border: `1px solid ${color.line}`, background: color.faint,
     color: color.ink, cursor: "pointer", font: "inherit", fontWeight: 600, textDecoration: "none",
   },
