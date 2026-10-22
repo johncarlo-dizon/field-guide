@@ -118,7 +118,17 @@ export default function ProcedureDetail() {
                   </button>
 
                   {isOpen && (
-                    <div style={{ padding: "4px 16px 16px", borderTop: `1px solid ${color.line}` }}>
+                                        <div style={{ padding: "4px 16px 16px", borderTop: `1px solid ${color.line}` }}>
+                      {p.canEdit && (
+                        <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 10 }}>
+                          <Link
+                            href={`/procedures/${id}/edit?process=${proc.id}`}
+                            style={{ ...ui.btn, ...ui.small }}
+                          >
+                            Edit this process
+                          </Link>
+                        </div>
+                      )}
                       {proc.blocks.length === 0 && (
                         <p style={ui.muted}>Nothing added to this process yet.</p>
                       )}

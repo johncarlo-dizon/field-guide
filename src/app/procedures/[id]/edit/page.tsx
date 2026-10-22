@@ -13,13 +13,14 @@ type LoadedBlock = {
   caption: string;
   attachmentId: string | null;
 };
-type LoadedProcess = { title: string; blocks: LoadedBlock[] };
+type LoadedProcess = { id: string; title: string; blocks: LoadedBlock[] };
 
 export default function EditProcedure() {
   const params = useParams();
   const router = useRouter();
   const id = String(params.id);
   const [initial, setInitial] = useState<ProcInitial | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
@@ -30,9 +31,15 @@ export default function EditProcedure() {
       if (!data.ok) { setMsg(data.error ?? "Could not load this procedure"); return; }
       const p = data.procedure;
       if (!p.canEdit) { setMsg(`Only ${p.authorName} can edit this procedure.`); return; }
+
+      const processes = p.processes as LoadedProcess[];
+      const wanted = new URLSearchParams(window.location.search).get("process");
+      const idx = wanted ? processes.findIndex((x) => x.id === wanted) : -1;
+
+      setOpenIndex(idx >= 0 ? idx : null);
       setInitial({
         title: p.title,
-        processes: (p.processes as LoadedProcess[]).map((x) => ({
+        processes: processes.map((x) => ({
           title: x.title,
           blocks: x.blocks.map((b) => ({
             type: b.type,
@@ -82,6 +89,7 @@ export default function EditProcedure() {
       backLabel="Cancel"
       submitLabel="Save changes"
       initial={initial}
+      openIndex={openIndex}
       onSubmit={submit}
     />
   );
