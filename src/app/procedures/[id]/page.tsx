@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { color, ui } from "@/lib/ui";
-
+import RichText from "@/components/RichText";
 type Block = {
   id: string;
   type: "text" | "image";
@@ -124,8 +124,8 @@ export default function ProcedureDetail() {
                       )}
                       {proc.blocks.map((b) =>
                         b.type === "text" ? (
-                          <p key={b.id} style={{ whiteSpace: "pre-wrap", lineHeight: 1.55, margin: "12px 0 0" }}>{b.content}</p>
-                        ) : (
+                          <div key={b.id} style={{ marginTop: 12 }}><RichText text={b.content} /></div>
+                                                ) : (
                           <figure key={b.id} style={{ margin: "12px 0 0" }}>
                             <a href={`/api/attachments/${b.attachmentId}`} target="_blank" rel="noreferrer">
                               {/* eslint-disable-next-line @next/next/no-img-element */}

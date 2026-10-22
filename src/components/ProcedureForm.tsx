@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { InitialBlock } from "@/components/ErrorForm";
 import AppShell from "@/components/AppShell";
-type B =
-  | { key: number; type: "text"; content: string }
-  | { key: number; type: "image"; attachmentId: string; caption: string };
+import BlockItem, { type BlockData } from "@/components/BlockItem";
+import TextEditor from "@/components/TextEditor";
+import type { InitialBlock } from "@/components/ErrorForm";
+
+type B = BlockData;
 type P = { key: number; title: string; blocks: B[] };
 type Pending = { pkey: number; key: number; attachmentId: string; caption: string };
 type Composer = null | { pkey: number; kind: "text" | "image" };
@@ -29,13 +30,13 @@ type Props = {
   backLabel: string;
   submitLabel: string;
   initial?: ProcInitial;
+  openIndex?: number | null; // which process to open (and scroll to) first
   // Return an error message to show, or null when saved (the page then navigates away)
   onSubmit: (p: ProcPayload) => Promise<string | null>;
 };
 
 const ui = {
   card: { background: "#fff", border: "1px solid #e4e4e4", borderRadius: 16, padding: 16, margin: "12px 0" },
-  inner: { background: "#fafafa", border: "1px solid #eee", borderRadius: 12, padding: 12, margin: "10px 0" },
   field: {
     width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid #e4e4e4",
     background: "#fafafa", marginTop: 6, boxSizing: "border-box", font: "inherit",
@@ -68,11 +69,12 @@ const toPayload = (b: B): PayloadBlock =>
     : { type: "image", attachmentId: b.attachmentId, caption: b.caption };
 
 export default function ProcedureForm({
-  heading, backHref, backLabel, submitLabel, initial, onSubmit,
+  heading, backHref, backLabel, submitLabel, initial, openIndex, onSubmit,
 }: Props) {
   const nextKey = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const targetRef = useRef<number | null>(null); // the process that receives a pasted picture
+  const procRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [procs, setProcs] = useState<P[]>(() =>
@@ -89,6 +91,8 @@ export default function ProcedureForm({
       }),
     }))
   );
+  const [openProcs, setOpenProcs] = useState<Record<number, boolean>>({}); // expanded processes
+
   const [composer, setComposer] = useState<Composer>(null);
   const [draftText, setDraftText] = useState("");
   const [pending, setPending] = useState<Pending[]>([]);
@@ -99,8 +103,10 @@ export default function ProcedureForm({
 
   const procsRef = useRef(procs);
   const composerRef = useRef(composer);
+  const openRef = useRef(openProcs);
   procsRef.current = procs;
   composerRef.current = composer;
+  openRef.current = openProcs;
 
   const updBlocks = useCallback(
     (pkey: number, fn: (b: B[]) => B[]) =>
@@ -108,13 +114,26 @@ export default function ProcedureForm({
     []
   );
 
+  // Open the process the person came from, and scroll to it.
+  useEffect(() => {
+    if (openIndex == null) return;
+    const p = procsRef.current[openIndex];
+    if (!p) return;
+    setOpenProcs({ [p.key]: true });
+    targetRef.current = p.key;
+    requestAnimationFrame(() => {
+      procRefs.current[p.key]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /* ---------- pictures ---------- */
 
   const upload = useCallback(
     async (file: File, target: number | null) => {
       setMsg("");
       if (target === null) {
-        setMsg("Click inside a process first, then paste the picture.");
+        setMsg("Open a process and click inside it first, then paste the picture.");
         return;
       }
       setUploading((n) => n + 1);
@@ -139,7 +158,7 @@ export default function ProcedureForm({
     [updBlocks]
   );
 
-  // Ctrl+V pastes a screenshot into the process you last clicked in
+  // Ctrl+V pastes a screenshot into the open process you last clicked in
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
       const files: File[] = [];
@@ -152,8 +171,10 @@ export default function ProcedureForm({
       if (files.length === 0) return; // normal text paste continues as usual
       e.preventDefault();
       const list = procsRef.current;
-      const known = list.some((p) => p.key === targetRef.current);
-      const target = known ? targetRef.current : list.length === 1 ? list[0].key : null;
+      const t = targetRef.current;
+      let target: number | null = null;
+      if (t !== null && list.some((p) => p.key === t) && openRef.current[t]) target = t;
+      else if (list.length === 1 && openRef.current[list[0].key]) target = list[0].key;
       files.forEach((f) => upload(f, target));
     }
     document.addEventListener("paste", onPaste);
@@ -184,6 +205,10 @@ export default function ProcedureForm({
     const key = nextKey.current++;
     targetRef.current = key;
     setProcs((l) => [...l, { key, title: "", blocks: [] }]);
+    setOpenProcs((o) => ({ ...o, [key]: true }));
+    requestAnimationFrame(() => {
+      procRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
   const setProcTitle = (key: number, t: string) =>
     setProcs((l) => l.map((p) => (p.key === key ? { ...p, title: t } : p)));
@@ -200,6 +225,10 @@ export default function ProcedureForm({
       [c[i], c[j]] = [c[j], c[i]];
       return c;
     });
+  function toggleProc(key: number) {
+    if (openProcs[key] && composer?.pkey === key) closeComposer();
+    setOpenProcs((o) => ({ ...o, [key]: !o[key] }));
+  }
 
   /* ---------- the card that opens under a process's buttons ---------- */
 
@@ -270,7 +299,11 @@ export default function ProcedureForm({
 
     const out: ProcPayload["processes"] = [];
     for (const p of procs) {
-      if (!p.title.trim()) { setMsg("Every process needs a title"); return; }
+      if (!p.title.trim()) {
+        setOpenProcs((o) => ({ ...o, [p.key]: true }));
+        setMsg("Every process needs a name");
+        return;
+      }
       const blocks: PayloadBlock[] = p.blocks.map(toPayload);
       // Anything still open in a card is included, so nothing typed is lost.
       if (composer?.pkey === p.key) {
@@ -292,7 +325,9 @@ export default function ProcedureForm({
   return (
     <AppShell>
       <main style={{ padding: "16px 0 32px" }}>
-        <p style={{ margin: "0 0 4px" }}><Link href={backHref} style={{ ...ui.muted, fontSize: 14 }}>&larr; {backLabel}</Link></p>
+        <p style={{ margin: "0 0 4px" }}>
+          <Link href={backHref} style={{ ...ui.muted, fontSize: 14 }}>&larr; {backLabel}</Link>
+        </p>
         <h1 style={{ marginBottom: 4 }}>{heading}</h1>
 
         <div style={ui.card}>
@@ -306,154 +341,175 @@ export default function ProcedureForm({
         </div>
 
         {procs.map((p, i) => {
+          const isOpen = !!openProcs[p.key];
           const open = composer && composer.pkey === p.key ? composer : null;
           const mine = pending.filter((x) => x.pkey === p.key);
 
           return (
             <div
-              key={p.key} style={ui.card}
+              key={p.key}
+              ref={(el) => { procRefs.current[p.key] = el; }}
+              style={{ ...ui.card, padding: 0, overflow: "hidden", scrollMarginTop: 16 }}
               onClickCapture={() => { targetRef.current = p.key; }}
               onFocusCapture={() => { targetRef.current = p.key; }}
             >
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <b style={{ ...ui.muted, width: 24 }}>{i + 1}.</b>
-                <input
-                  value={p.title} onChange={(e) => setProcTitle(p.key, e.target.value)} maxLength={200}
-                  placeholder="Process name, for example: POS configuration"
-                  style={{ ...ui.field, marginTop: 0, flex: 1 }}
-                />
-                <button type="button" style={{ ...ui.btn, ...ui.small }} onClick={() => moveProc(i, -1)} disabled={i === 0}>&uarr;</button>
-                <button type="button" style={{ ...ui.btn, ...ui.small }} onClick={() => moveProc(i, 1)} disabled={i === procs.length - 1}>&darr;</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 10px 10px 6px" }}>
+                <button
+                  type="button"
+                  onClick={() => toggleProc(p.key)}
+                  aria-expanded={isOpen}
+                  style={{
+                    flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: 8,
+                    border: 0, background: "transparent", cursor: "pointer", font: "inherit", color: "#171717", textAlign: "left",
+                  }}
+                >
+                  <svg
+                    width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b6b6b" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                    style={{ flex: "none", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}
+                  >
+                    <path d="m9 6 6 6-6 6" />
+                  </svg>
+                  <span
+                    style={{
+                      width: 26, height: 26, borderRadius: "50%", background: "#262626", color: "#fff", flex: "none",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700,
+                    }}
+                  >
+                    {i + 1}
+                  </span>
+                  <b style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.title.trim() || "Untitled process"}
+                  </b>
+                  <span style={{ flex: "none", fontSize: 13, ...ui.muted }}>
+                    {p.blocks.length} {p.blocks.length === 1 ? "item" : "items"}
+                  </span>
+                </button>
+                <button type="button" style={{ ...ui.btn, ...ui.small }} onClick={() => moveProc(i, -1)} disabled={i === 0} aria-label="Move up">&uarr;</button>
+                <button type="button" style={{ ...ui.btn, ...ui.small }} onClick={() => moveProc(i, 1)} disabled={i === procs.length - 1} aria-label="Move down">&darr;</button>
                 <button type="button" style={{ ...ui.btn, ...ui.small, color: "#c0392b" }} onClick={() => removeProc(p.key)}>Remove</button>
               </div>
 
-              {p.blocks.map((b, bi) => (
-                <div key={b.key} style={ui.inner}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <b style={{ flex: 1, fontSize: 14 }}>{b.type === "text" ? "Text" : "Picture"}</b>
-                    <button type="button" style={{ ...ui.btn, ...ui.small }} onClick={() => moveBlock(p.key, bi, -1)} disabled={bi === 0}>&uarr;</button>
-                    <button type="button" style={{ ...ui.btn, ...ui.small }} onClick={() => moveBlock(p.key, bi, 1)} disabled={bi === p.blocks.length - 1}>&darr;</button>
-                    <button type="button" style={{ ...ui.btn, ...ui.small, color: "#c0392b" }} onClick={() => removeBlock(p.key, b.key)}>Remove</button>
+              {isOpen && (
+                <div style={{ padding: "0 16px 16px", borderTop: "1px solid #eee" }}>
+                  <label style={{ display: "block", marginTop: 14 }}>
+                    <b style={{ fontSize: 14 }}>Process name</b>
+                    <input
+                      value={p.title} onChange={(e) => setProcTitle(p.key, e.target.value)} maxLength={200}
+                      autoFocus={!p.title} placeholder="For example: POS configuration" style={ui.field}
+                    />
+                  </label>
+
+                  <div style={{ marginTop: 6 }}>
+                    {p.blocks.map((b, bi) => (
+                      <BlockItem
+                        key={b.key}
+                        block={b}
+                        first={bi === 0}
+                        last={bi === p.blocks.length - 1}
+                        onMove={(d) => moveBlock(p.key, bi, d)}
+                        onRemove={() => removeBlock(p.key, b.key)}
+                        onText={(v) => setContent(p.key, b.key, v)}
+                        onCaption={(v) => setCaption(p.key, b.key, v)}
+                      />
+                    ))}
                   </div>
 
-                  {b.type === "text" ? (
-                    <textarea
-                      rows={3} value={b.content} onChange={(e) => setContent(p.key, b.key, e.target.value)}
-                      maxLength={5000} style={{ ...ui.field, background: "#fff" }}
-                    />
-                  ) : (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`/api/attachments/${b.attachmentId}?thumb=1`} alt="Uploaded screenshot"
-                        style={{ maxWidth: "100%", marginTop: 8, borderRadius: 10, border: "1px solid #e4e4e4" }}
-                      />
-                      <input
-                        value={b.caption} onChange={(e) => setCaption(p.key, b.key, e.target.value)}
-                        maxLength={200} placeholder="Caption (optional)" style={{ ...ui.field, background: "#fff" }}
-                      />
-                    </>
-                  )}
-                </div>
-              ))}
-
-              <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-                <button
-                  type="button" onClick={() => toggle(p.key, "text")}
-                  style={{ ...ui.btn, flex: 1, ...(open?.kind === "text" ? ui.dark : {}) }}
-                >
-                  Text
-                </button>
-                <button
-                  type="button" onClick={() => toggle(p.key, "image")}
-                  aria-label="Add a picture" title="Add a picture"
-                  style={{
-                    ...ui.btn, flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-                    ...(open?.kind === "image" ? ui.dark : {}),
-                  }}
-                >
-                  <ImageIcon />
-                </button>
-              </div>
-
-              {open?.kind === "text" && (
-                <div style={ui.inner}>
-                  <textarea
-                    autoFocus rows={4} value={draftText} onChange={(e) => setDraftText(e.target.value)}
-                    maxLength={5000} placeholder="Write an instruction or a note"
-                    style={{ ...ui.field, marginTop: 0, background: "#fff" }}
-                  />
                   <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
                     <button
-                      type="button" onClick={addText} disabled={!draftText.trim()}
-                      style={{ ...ui.btn, ...ui.dark, flex: 1, opacity: draftText.trim() ? 1 : 0.5 }}
+                      type="button" onClick={() => toggle(p.key, "text")}
+                      style={{ ...ui.btn, flex: 1, ...(open?.kind === "text" ? ui.dark : {}) }}
                     >
-                      Add
+                      Text
                     </button>
-                    <button type="button" onClick={closeComposer} style={{ ...ui.btn, flex: 1 }}>Cancel</button>
-                  </div>
-                </div>
-              )}
-
-              {open?.kind === "image" && (
-                <div style={ui.inner}>
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setDrag(p.key); }}
-                    onDragLeave={() => setDrag(null)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDrag(null);
-                      Array.from(e.dataTransfer.files)
-                        .filter((f) => f.type.startsWith("image/"))
-                        .forEach((f) => upload(f, p.key));
-                    }}
-                    style={{
-                      border: "2px dashed " + (drag === p.key ? "#262626" : "#d4d4d4"), borderRadius: 12,
-                      padding: 20, textAlign: "center", background: "#fff",
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                      <button type="button" style={ui.btn} onClick={() => fileRef.current?.click()}>Choose image</button>
-                      <button type="button" style={ui.btn} onClick={() => pasteFromClipboard(p.key)}>Paste from clipboard</button>
-                    </div>
+                    <button
+                      type="button" onClick={() => toggle(p.key, "image")}
+                      aria-label="Add a picture" title="Add a picture"
+                      style={{
+                        ...ui.btn, flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+                        ...(open?.kind === "image" ? ui.dark : {}),
+                      }}
+                    >
+                      <ImageIcon />
+                    </button>
                   </div>
 
-                  {uploading > 0 && <p style={ui.muted}>Uploading picture...</p>}
-
-                  {mine.map((x) => (
-                    <div key={x.key} style={{ marginTop: 12 }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`/api/attachments/${x.attachmentId}?thumb=1`} alt="Uploaded screenshot"
-                        style={{ maxWidth: "100%", borderRadius: 10, border: "1px solid #e4e4e4" }}
-                      />
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <input
-                          value={x.caption} maxLength={200} placeholder="Caption (optional)"
-                          onChange={(e) =>
-                            setPending((list) => list.map((y) => (y.key === x.key ? { ...y, caption: e.target.value } : y)))
-                          }
-                          style={{ ...ui.field, background: "#fff" }}
-                        />
+                  {open?.kind === "text" && (
+                    <div style={{ background: "#fafafa", border: "1px solid #eee", borderRadius: 12, padding: 12, margin: "10px 0" }}>
+                      <TextEditor value={draftText} onChange={setDraftText} autoFocus />
+                      <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
                         <button
-                          type="button" style={{ ...ui.btn, ...ui.small, marginTop: 6 }}
-                          onClick={() => setPending((list) => list.filter((y) => y.key !== x.key))}
+                          type="button" onClick={addText} disabled={!draftText.trim()}
+                          style={{ ...ui.btn, ...ui.dark, flex: 1, opacity: draftText.trim() ? 1 : 0.5 }}
                         >
-                          Remove
+                          Add
                         </button>
+                        <button type="button" onClick={closeComposer} style={{ ...ui.btn, flex: 1 }}>Cancel</button>
                       </div>
                     </div>
-                  ))}
+                  )}
 
-                  <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-                    <button
-                      type="button" onClick={addPictures} disabled={mine.length === 0}
-                      style={{ ...ui.btn, ...ui.dark, flex: 1, opacity: mine.length ? 1 : 0.5 }}
-                    >
-                      Add
-                    </button>
-                    <button type="button" onClick={closeComposer} style={{ ...ui.btn, flex: 1 }}>Cancel</button>
-                  </div>
+                  {open?.kind === "image" && (
+                    <div style={{ background: "#fafafa", border: "1px solid #eee", borderRadius: 12, padding: 12, margin: "10px 0" }}>
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setDrag(p.key); }}
+                        onDragLeave={() => setDrag(null)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDrag(null);
+                          Array.from(e.dataTransfer.files)
+                            .filter((f) => f.type.startsWith("image/"))
+                            .forEach((f) => upload(f, p.key));
+                        }}
+                        style={{
+                          border: "2px dashed " + (drag === p.key ? "#262626" : "#d4d4d4"), borderRadius: 12,
+                          padding: 20, textAlign: "center", background: "#fff",
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                          <button type="button" style={ui.btn} onClick={() => fileRef.current?.click()}>Choose image</button>
+                          <button type="button" style={ui.btn} onClick={() => pasteFromClipboard(p.key)}>Paste from clipboard</button>
+                        </div>
+                      </div>
+
+                      {uploading > 0 && <p style={ui.muted}>Uploading picture...</p>}
+
+                      {mine.map((x) => (
+                        <div key={x.key} style={{ marginTop: 12 }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`/api/attachments/${x.attachmentId}?thumb=1`} alt="Uploaded screenshot"
+                            style={{ maxWidth: "100%", borderRadius: 10, border: "1px solid #e4e4e4" }}
+                          />
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <input
+                              value={x.caption} maxLength={200} placeholder="Caption (optional)"
+                              onChange={(e) =>
+                                setPending((list) => list.map((y) => (y.key === x.key ? { ...y, caption: e.target.value } : y)))
+                              }
+                              style={{ ...ui.field, background: "#fff" }}
+                            />
+                            <button
+                              type="button" style={{ ...ui.btn, ...ui.small, marginTop: 6 }}
+                              onClick={() => setPending((list) => list.filter((y) => y.key !== x.key))}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+                        <button
+                          type="button" onClick={addPictures} disabled={mine.length === 0}
+                          style={{ ...ui.btn, ...ui.dark, flex: 1, opacity: mine.length ? 1 : 0.5 }}
+                        >
+                          Add
+                        </button>
+                        <button type="button" onClick={closeComposer} style={{ ...ui.btn, flex: 1 }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

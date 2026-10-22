@@ -180,3 +180,56 @@ textarea {
 .lg-search {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
+
+.fg-edit-wrap {
+  border: 1px solid #e4e4e4;
+  border-radius: 10px;
+  background: #fafafa;
+  padding: 12px 14px;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+.fg-edit-wrap:focus-within {
+  border-color: #262626;
+  background: #ffffff;
+}
+.fg-editor {
+  outline: none;
+  line-height: 1.5;
+  word-break: break-word;
+  min-height: 24px;
+}
+.fg-editor p {
+  margin: 0 0 12px;
+}
+.fg-editor > :last-child {
+  margin-bottom: 0;
+}
+.fg-editor ul {
+  margin: 0 0 12px;
+  padding-left: 28px;
+  list-style-type: disc;
+}
+.fg-editor ul ul {
+  margin: 4px 0 0;
+  padding-left: 24px;
+  list-style-type: circle;
+}
+.fg-editor ul ul ul {
+  list-style-type: square;
+}
+.fg-editor li {
+  padding-left: 2px;
+}
+.fg-editor li + li {
+  margin-top: 4px;
+}
+.fg-editor li > p {
+  margin: 0;
+}
+.fg-editor mark {
+  background: #fff3a3;
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 3px;
+}

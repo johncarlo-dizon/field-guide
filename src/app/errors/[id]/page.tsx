@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { badge, color, statusColor, ui } from "@/lib/ui";
-
+import RichText from "@/components/RichText";
 type Block = {
   id: string;
   position: number;
@@ -76,7 +76,7 @@ export default function ErrorDetail() {
             {e.blocks.length === 0 && <p style={{ margin: 0, ...ui.muted }}>Nothing here yet.</p>}
             {e.blocks.map((b) =>
               b.type === "text" ? (
-                <p key={b.id} style={{ whiteSpace: "pre-wrap", margin: "0 0 12px", lineHeight: 1.55 }}>{b.content}</p>
+                               <div key={b.id} style={{ margin: "0 0 12px" }}><RichText text={b.content} /></div>
               ) : (
                 <figure key={b.id} style={{ margin: "0 0 12px" }}>
                   <a href={`/api/attachments/${b.attachmentId}`} target="_blank" rel="noreferrer">

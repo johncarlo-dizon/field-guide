@@ -1,7 +1,10 @@
 "use client";
-import AppShell from "@/components/AppShell";
+
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import AppShell from "@/components/AppShell";
+import BlockItem from "@/components/BlockItem";
+import TextEditor from "@/components/TextEditor";
 
 export type Status = "draft" | "verified" | "outdated";
 export type InitialBlock = {
@@ -176,7 +179,7 @@ export default function ErrorForm({
     setComposer(null);
   }
 
-  /* ---------- the list of blocks already added ---------- */
+  /* ---------- blocks already added ---------- */
 
   const setContent = (key: number, content: string) =>
     setBlocks((b) => b.map((x) => (x.key === key && x.type === "text" ? { ...x, content } : x)));
@@ -223,7 +226,9 @@ export default function ErrorForm({
   return (
     <AppShell>
       <main style={{ padding: "16px 0 32px" }}>
-               <p style={{ margin: "0 0 4px" }}><Link href={backHref} style={{ ...ui.muted, fontSize: 14 }}>&larr; {backLabel}</Link></p>
+        <p style={{ margin: "0 0 4px" }}>
+          <Link href={backHref} style={{ ...ui.muted, fontSize: 14 }}>&larr; {backLabel}</Link>
+        </p>
         <h1 style={{ marginBottom: 4 }}>{heading}</h1>
 
         {/* Title and the two add buttons */}
@@ -270,11 +275,7 @@ export default function ErrorForm({
         {/* Text card */}
         {composer === "text" && (
           <div style={ui.card}>
-            <textarea
-              autoFocus rows={4} value={draftText} onChange={(e) => setDraftText(e.target.value)}
-              maxLength={5000} placeholder="Write an instruction or a note"
-              style={{ ...ui.field, marginTop: 0 }}
-            />
+            <TextEditor value={draftText} onChange={setDraftText} autoFocus />
             <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
               <button
                 type="button" onClick={addText} disabled={!draftText.trim()}
@@ -311,7 +312,6 @@ export default function ErrorForm({
                   Paste from clipboard
                 </button>
               </div>
-   
               <input
                 ref={fileRef} type="file" accept="image/*" multiple hidden
                 onChange={(e) => { Array.from(e.target.files ?? []).forEach(upload); e.target.value = ""; }}
@@ -357,40 +357,21 @@ export default function ErrorForm({
           </div>
         )}
 
-      
-        {blocks.length === 0 && (
-          <div style={{ ...ui.card, ...ui.muted }}>Nothing added yet. Use the Text or picture button above.</div>
-        )}
-
-        {blocks.map((b, i) => (
-          <div key={b.key} style={ui.card}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <b style={{ flex: 1 }}>{b.type === "text" ? "Text" : "Picture"}</b>
-              <button type="button" style={{ ...ui.btn, ...ui.small }} onClick={() => move(i, -1)} disabled={i === 0}>&uarr;</button>
-              <button type="button" style={{ ...ui.btn, ...ui.small }} onClick={() => move(i, 1)} disabled={i === blocks.length - 1}>&darr;</button>
-              <button type="button" style={{ ...ui.btn, ...ui.small, color: "#c0392b" }} onClick={() => remove(b.key)}>Remove</button>
-            </div>
-
-            {b.type === "text" ? (
-              <textarea
-                rows={3} value={b.content} onChange={(e) => setContent(b.key, e.target.value)}
-                maxLength={5000} style={ui.field}
-              />
-            ) : (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`/api/attachments/${b.attachmentId}?thumb=1`} alt="Uploaded screenshot"
-                  style={{ maxWidth: "100%", marginTop: 8, borderRadius: 10, border: "1px solid #e4e4e4" }}
-                />
-                <input
-                  value={b.caption} onChange={(e) => setCaption(b.key, e.target.value)} maxLength={200}
-                  placeholder="Caption (optional)" style={ui.field}
-                />
-              </>
-            )}
-          </div>
-        ))}
+        {/* What has been added so far: each block is a row you can expand */}
+        <div style={{ marginTop: 8 }}>
+          {blocks.map((b, i) => (
+            <BlockItem
+              key={b.key}
+              block={b}
+              first={i === 0}
+              last={i === blocks.length - 1}
+              onMove={(d) => move(i, d)}
+              onRemove={() => remove(b.key)}
+              onText={(v) => setContent(b.key, v)}
+              onCaption={(v) => setCaption(b.key, v)}
+            />
+          ))}
+        </div>
 
         {msg && <p style={{ color: "#c0392b" }}>{msg}</p>}
 
