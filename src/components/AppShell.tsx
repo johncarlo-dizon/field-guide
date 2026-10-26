@@ -49,7 +49,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px" }}>
-        <nav style={{ paddingTop: 16 }}>
+                <nav style={{ paddingTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 14, background: "#ebebeb" }}>
             {tabs.map((t) => {
               const active = path === t.href || path.startsWith(t.href + "/");
@@ -67,6 +67,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+          </div>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 14 }}>
+            <a href="/api/export/offline" download style={{ ...ui.btn, ...ui.small }}>Offline copy</a>
+            <a href="/api/export/offline?images=0" download style={{ ...ui.muted, textDecoration: "underline" }}>text only</a>
           </div>
         </nav>
         {children}
