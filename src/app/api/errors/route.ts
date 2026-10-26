@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { attachments, errorBlocks, errors, users } from "@/db/schema";
+import { errorBlocks, errors, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { cleanText, cleanTitle, parseBlocks } from "@/lib/error-input";
+import { errorIndex } from "@/lib/search-errors";
+import { tokens } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
 
@@ -14,55 +16,58 @@ function fail(e: unknown) {
   );
 }
 
-// GET /api/errors?q=words -> list (newest first). Every word must match somewhere:
-// title, message, text steps, captions, or text found inside pictures.
+// GET /api/errors?q=words
+// No words: newest first. With words: closest matches first, each with a match percentage.
 export async function GET(req: Request) {
   try {
     const me = await getCurrentUser();
     if (!me) return NextResponse.json({ ok: false, error: "Not logged in" }, { status: 401 });
 
     const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
-    const terms = q.split(/\s+/).filter(Boolean).slice(0, 6);
-    const likeOf = (t: string) => `%${t.replace(/[\\%_]/g, "\\$&")}%`;
-
-    const inBlocks = (like: string) =>
-      sql`exists (select 1 from ${errorBlocks} b where b.error_id = ${errors.id} and (b.content ilike ${like} or b.caption ilike ${like}))`;
-    const ocrHit = (like: string) =>
-      sql`exists (select 1 from ${errorBlocks} b join ${attachments} a on a.id = b.attachment_id where b.error_id = ${errors.id} and a.ocr_text ilike ${like})`;
-
-    const perTerm = terms.map((t) => {
-      const like = likeOf(t);
-      return or(ilike(errors.title, like), ilike(errors.errorText, like), inBlocks(like), ocrHit(like));
-    });
-    const where = and(isNull(errors.deletedAt), ...perTerm);
-    const pic = terms.length ? or(...terms.map((t) => ocrHit(likeOf(t)))) : sql`false`;
 
     const rows = await db
       .select({
         id: errors.id,
         title: errors.title,
-        errorText: errors.errorText,
         status: errors.status,
         createdAt: errors.createdAt,
         updatedAt: errors.updatedAt,
         authorId: errors.authorId,
         authorName: users.displayName,
         authorPosition: users.position,
-        inPicture: sql<boolean>`coalesce(${pic}, false)`,
       })
       .from(errors)
       .innerJoin(users, eq(errors.authorId, users.id))
-      .where(where)
-      .orderBy(desc(errors.updatedAt))
-      .limit(100);
+      .where(isNull(errors.deletedAt))
+      .orderBy(desc(errors.updatedAt));
 
-    return NextResponse.json({ ok: true, errors: rows });
+    const plain = (r: (typeof rows)[number]) => ({ ...r, inPicture: false, score: null, where: null });
+
+    if (!q) return NextResponse.json({ ok: true, errors: rows.slice(0, 100).map(plain) });
+
+    // A search with no real words (only symbols or very common words): simple title match.
+    if (tokens(q).length === 0) {
+      const s = q.toLowerCase();
+      return NextResponse.json({
+        ok: true,
+        errors: rows.filter((r) => r.title.toLowerCase().includes(s)).slice(0, 100).map(plain),
+      });
+    }
+
+    const hits = (await errorIndex()).search(q);
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const result = hits.flatMap((h) => {
+      const r = byId.get(h.owner);
+      return r ? [{ ...r, inPicture: h.picture, score: Math.round(h.score * 100), where: h.where }] : [];
+    });
+
+    return NextResponse.json({ ok: true, errors: result });
   } catch (e) {
     return fail(e);
   }
 }
 
-// POST /api/errors { title, errorText, blocks: [{ type, content }] }
+// POST /api/errors { title, status?, blocks: [{ type, content }] }
 export async function POST(req: Request) {
   try {
     const me = await getCurrentUser();

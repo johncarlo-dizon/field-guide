@@ -66,11 +66,15 @@ export async function POST(req: Request) {
       .returning({ id: attachments.id });
 
           // Read the text inside the picture in the background (does not slow the upload)
+    // Small screenshots are enlarged first, because OCR cannot read very small text.
+    const w = main.info.width ?? 800;
+    const targetWidth = w >= 1400 ? w : Math.min(2400, Math.max(1600, w * 4));
     const ocrInput = await img
       .clone()
-      .resize({ width: 1600, withoutEnlargement: true })
+      .resize({ width: targetWidth, kernel: "lanczos3" })
       .grayscale()
       .normalize()
+      .sharpen()
       .png()
       .toBuffer();
     queueOcr(row.id, ocrInput);

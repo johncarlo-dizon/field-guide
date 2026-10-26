@@ -13,7 +13,12 @@ type Row = {
   authorName: string;
   authorPosition: string;
   inPicture: boolean;
+  score: number | null;
+  where: "title" | "steps" | "picture" | null;
 };
+
+const WHERE = { title: "the title", steps: "the steps", picture: "a picture" } as const;
+const scoreColor = (s: number) => (s >= 70 ? color.ok : s >= 45 ? color.dark : color.mut);
 
 export default function ErrorsPage() {
   const [q, setQ] = useState("");
@@ -31,6 +36,8 @@ export default function ErrorsPage() {
     return () => clearTimeout(timer);
   }, [q]);
 
+  const searching = q.trim().length > 0;
+
   return (
     <AppShell>
       <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
@@ -47,7 +54,7 @@ export default function ErrorsPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search errors, steps, screenshots"
+            placeholder="Describe the problem, in your own words"
             aria-label="Search"
             style={{ flex: 1, minWidth: 0, border: 0, background: "transparent", font: "inherit", color: color.ink, outline: "none" }}
           />
@@ -62,17 +69,30 @@ export default function ErrorsPage() {
 
       {msg && <p style={{ color: color.danger }}>{msg}</p>}
       {rows === null && !msg && <p style={ui.muted}>Loading...</p>}
-      {rows && rows.length === 0 && <p style={ui.muted}>No errors found.</p>}
+      {rows && rows.length === 0 && (
+        <p style={ui.muted}>{searching ? "No close matches. Try other words." : "No errors yet."}</p>
+      )}
+      {searching && rows && rows.length > 0 && (
+        <p style={{ margin: "12px 0 0", fontSize: 13, ...ui.muted }}>Closest matches first. The percentage shows how close each one is.</p>
+      )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, margin: "16px 0 32px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, margin: "12px 0 32px" }}>
         {rows?.map((r) => (
           <Link key={r.id} href={`/errors/${r.id}`} style={{ ...ui.card, display: "block", color: "inherit" }}>
-            <b style={{ fontSize: 17, lineHeight: 1.3 }}>{r.title}</b>
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <b style={{ flex: 1, fontSize: 17, lineHeight: 1.3 }}>{r.title}</b>
+              {r.score !== null && (
+                <span style={{ ...badge(scoreColor(r.score)), flex: "none", whiteSpace: "nowrap" }}>{r.score}% match</span>
+              )}
+            </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
               <span style={badge(statusColor(r.status))}>{r.status}</span>
-              {q.trim() && r.inPicture && <span style={badge(color.dark)}>text found in a picture</span>}
+              {r.inPicture && <span style={badge(color.dark)}>text found in a picture</span>}
             </div>
-            <div style={{ marginTop: 10, fontSize: 13, ...ui.muted }}>
+            {r.where && (
+              <div style={{ marginTop: 8, fontSize: 13, ...ui.muted }}>Closest match is in {WHERE[r.where]}</div>
+            )}
+            <div style={{ marginTop: 8, fontSize: 13, ...ui.muted }}>
               Added by <b style={{ color: color.ink }}>{r.authorName}</b> ({r.authorPosition}) · {new Date(r.updatedAt).toLocaleDateString()}
             </div>
           </Link>
