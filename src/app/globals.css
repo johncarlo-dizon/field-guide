@@ -233,3 +233,10 @@ textarea {
   padding: 0 2px;
   border-radius: 3px;
 }
+h1,
+h2 {
+  overflow-wrap: anywhere;
+}
+.fg-editor {
+  overflow-wrap: anywhere;
+}

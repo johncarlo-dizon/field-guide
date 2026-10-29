@@ -2,7 +2,7 @@ import { asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { attachments, errorBlocks, errors } from "@/db/schema";
 import { parseText } from "@/lib/richtext";
-import { SearchIndex, type Chunk } from "@/lib/search";
+import { SearchIndex, windows, type Chunk } from "@/lib/search";
 
 let cache: { at: number; index: SearchIndex } | null = null;
 const TTL = 10_000; // a new or edited entry becomes searchable within about 10 seconds

@@ -3,6 +3,17 @@ import { itemTree, parseText, type Li } from "@/lib/richtext";
 
 const mark: CSSProperties = { background: "#fff3a3", color: "inherit", padding: "0 2px", borderRadius: 3 };
 
+// Lets long paths wrap after \ and / without adding any characters, so copying still gives the exact path.
+function breakable(text: string, key: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  text.split(/([\\/])/).forEach((p, i) => {
+    if (p === "") return;
+    out.push(p);
+    if (p === "\\" || p === "/") out.push(<wbr key={`${key}w${i}`} />);
+  });
+  return out;
+}
+
 // **bold** and ==highlight==, which may be nested inside each other.
 function inline(text: string, prefix = ""): ReactNode[] {
   const out: ReactNode[] = [];
@@ -11,13 +22,13 @@ function inline(text: string, prefix = ""): ReactNode[] {
   let n = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    if (m.index > last) out.push(text.slice(last, m.index));
+    if (m.index > last) out.push(...breakable(text.slice(last, m.index), `${prefix}${n++}t`));
     const key = `${prefix}${n++}`;
     if (m[1] !== undefined) out.push(<strong key={key}>{inline(m[1], key + "-")}</strong>);
     else out.push(<mark key={key} style={mark}>{inline(m[2], key + "-")}</mark>);
     last = m.index + m[0].length;
   }
-  if (last < text.length) out.push(text.slice(last));
+  if (last < text.length) out.push(...breakable(text.slice(last), `${prefix}${n++}t`));
   return out;
 }
 
@@ -54,5 +65,6 @@ export default function RichText({ text }: { text: string }) {
       </p>
     );
   });
-  return <div>{blocks}</div>;
+  // Very long words (a file name with no slashes, for example) wrap instead of running off the card.
+  return <div style={{ overflowWrap: "anywhere" }}>{blocks}</div>;
 }

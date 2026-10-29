@@ -8,7 +8,9 @@ import {
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { absPath } from "@/lib/uploads";
-import { esc, pageHtml, plain, richToHtml } from "@/lib/export-html";
+import { parseText } from "@/lib/richtext";
+import { windows } from "@/lib/search";
+import { esc, pageHtml, richToHtml, safeJson } from "@/lib/export-html";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,9 +38,6 @@ async function dataUri(filePath: string): Promise<string | null> {
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const day = (d: Date) => d.toISOString().slice(0, 10);
-const blob = (parts: string[]) => parts.join(" ").replace(/\s+/g, " ").toLowerCase();
-const blockText = (bs: Blk[]) =>
-  bs.map((b) => (b.type === "text" ? plain(b.content) : `${b.caption} ${b.ocr ?? ""}`));
 
 function blocksHtml(bs: Blk[], uris: Map<string, string | null>): string {
   return bs
@@ -52,6 +51,9 @@ function blocksHtml(bs: Blk[], uris: Map<string, string | null>): string {
     })
     .join("");
 }
+
+const rowHtml = (title: string) =>
+  `<span class="row"><b>${esc(title)}</b><span class="pct" style="display:none"></span></span>`;
 
 // GET /api/export/offline          -> one file with everything, pictures included
 // GET /api/export/offline?images=0 -> text only (much smaller)
@@ -154,26 +156,46 @@ export async function GET(req: Request) {
       }
     }
 
+    /* ---------- search pieces: [entry number, where (0 title, 1 steps, 2 picture), text] ---------- */
+    const chunks: [number, number, string][] = [];
+    const addPieces = (owner: number, bs: Blk[]) => {
+      for (const b of bs) {
+        if (b.type === "text") {
+          for (const p of parseText(b.content)) {
+            const text = p.kind === "p" ? p.lines.join(" ") : p.items.map((i) => i.text).join(" ");
+            for (const w of windows(text)) chunks.push([owner, 1, w]);
+          }
+        } else {
+          if (b.caption) chunks.push([owner, 1, b.caption]);
+          for (const w of windows(b.ocr ?? "")) chunks.push([owner, 2, w]);
+        }
+      }
+    };
+
     /* ---------- build the page ---------- */
     const errorsHtml = errs
-      .map((e) => {
+      .map((e, idx) => {
         const bs = eMap.get(e.id) ?? [];
-        const search = blob([e.title, e.status, e.authorName, ...blockText(bs)]);
+        chunks.push([idx, 0, e.title]);
+        addPieces(idx, bs);
         return (
-          `<details class="entry" data-kind="errors" data-s="${esc(search)}">` +
-          `<summary><b>${esc(e.title)}</b><span class="meta">${esc(cap(e.status))} · ${esc(e.authorName)} (${esc(e.authorPosition)}) · ${day(e.updatedAt)}</span></summary>` +
+          `<details class="entry" data-kind="errors" data-i="${idx}">` +
+          `<summary>${rowHtml(e.title)}<span class="meta">${esc(cap(e.status))} · ${esc(e.authorName)} (${esc(e.authorPosition)}) · ${day(e.updatedAt)}</span>` +
+          `<span class="where" style="display:none"></span></summary>` +
           `<div class="body">${blocksHtml(bs, uris)}</div></details>`
         );
       })
       .join("");
 
     const procsHtml = procs
-      .map((p) => {
+      .map((p, j) => {
+        const idx = errs.length + j;
         const mine = pRows.filter((r) => r.procedureId === p.id);
-        const search = blob([
-          p.title, p.authorName,
-          ...mine.flatMap((r) => [r.title, ...blockText(bMap.get(r.id) ?? [])]),
-        ]);
+        chunks.push([idx, 0, p.title]);
+        for (const r of mine) {
+          chunks.push([idx, 0, r.title]);
+          addPieces(idx, bMap.get(r.id) ?? []);
+        }
         const inner = mine
           .map(
             (r, i) =>
@@ -182,8 +204,9 @@ export async function GET(req: Request) {
           )
           .join("");
         return (
-          `<details class="entry" data-kind="procedures" data-s="${esc(search)}">` +
-          `<summary><b>${esc(p.title)}</b><span class="meta">${mine.length} ${mine.length === 1 ? "process" : "processes"} · ${esc(p.authorName)} (${esc(p.authorPosition)}) · ${day(p.updatedAt)}</span></summary>` +
+          `<details class="entry" data-kind="procedures" data-i="${idx}">` +
+          `<summary>${rowHtml(p.title)}<span class="meta">${mine.length} ${mine.length === 1 ? "process" : "processes"} · ${esc(p.authorName)} (${esc(p.authorPosition)}) · ${day(p.updatedAt)}</span>` +
+          `<span class="where" style="display:none"></span></summary>` +
           `<div class="body">${inner}</div></details>`
         );
       })
@@ -194,6 +217,7 @@ export async function GET(req: Request) {
       date, by: me.displayName,
       errorCount: errs.length, procCount: procs.length,
       errorsHtml, procsHtml,
+      dataJson: safeJson({ c: chunks }),
     });
 
     return new NextResponse(html, {
