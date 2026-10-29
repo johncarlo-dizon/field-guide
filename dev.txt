@@ -1,0 +1,8 @@
+pull commands
+    Stop-ScheduledTask -TaskName "FieldGuide"         : powershell
+    cd D:\FieldGuide-prod
+    git pull
+    npm ci
+    npm run db:migrate
+    npm run build
+    Start-ScheduledTask -TaskName "FieldGuide"        : powershell
