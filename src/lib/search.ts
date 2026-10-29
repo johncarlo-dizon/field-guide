@@ -126,3 +126,15 @@ export class SearchIndex {
     return out.sort((a, b) => b.score - a.score).slice(0, limit);
   }
 }
+// Cuts long text into short overlapping stretches (about 14 words), so a focused search scores higher.
+export function windows(text: string, size = 14, step = 7): string[] {
+  const ws = text.split(/\s+/).filter(Boolean);
+  if (ws.length === 0) return [];
+  if (ws.length <= size) return [ws.join(" ")];
+  const out: string[] = [];
+  for (let i = 0; i < ws.length; i += size - (size - step)) {
+    out.push(ws.slice(i, i + size).join(" "));
+    if (i + size >= ws.length) break;
+  }
+  return out;
+}
