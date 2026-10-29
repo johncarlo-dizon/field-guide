@@ -68,10 +68,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               );
             })}
           </div>
-                    <div style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 14 }}>
-            <a href="/api/export/offline" download style={{ ...ui.btn, ...ui.small }}>Offline copy</a>
-            <a href="/api/export/offline?images=0" download style={{ ...ui.muted, textDecoration: "underline" }}>text only</a>
-          </div>
+                   <a href="/api/export/offline" download style={{ ...ui.btn, ...ui.small }}>Offline copy</a>
         </nav>
         {children}
       </div>
