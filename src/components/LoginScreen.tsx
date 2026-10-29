@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { color, ui } from "@/lib/ui";
-import ContourBackground from "@/components/ContourBackground";
 type Me = { id: string; displayName: string; position: string; role: string; mustChangePin: boolean };
 type Person = { id: string; displayName: string; position: string };
 type Reply = { status: number; ok?: boolean; error?: string; user?: Me };
@@ -47,21 +46,9 @@ function Avatar({ name, size }: { name: string; size: number }) {
 function Logo() {
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-        <div
-          style={{
-            width: 40, height: 40, borderRadius: 12, background: color.dark,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-          </svg>
-        </div>
-        <span style={{ fontSize: 22, fontWeight: 700 }}>FieldGuide</span>
-      </div>
-      <div style={{ marginTop: 6, fontSize: 14, ...ui.muted }}>Field Support Knowledge Base</div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/logo.png" alt="Alfamart" style={{ height: 48, width: "auto" }} />
+      <div style={{ marginTop: 8, fontSize: 15, fontWeight: 600, ...ui.muted }}>Field Support Knowledge Base</div>
     </div>
   );
 }
@@ -257,8 +244,7 @@ export default function LoginScreen({ people, user }: { people: Person[]; user: 
 
   return (
     <div className="lg-page">
-      <ContourBackground />
-      <div className="lg-wrap">
+      <div className={"lg-wrap" + (!me && !selected ? " wide" : "")}>
         <Logo />
 
         {!ready ? null : me ? (

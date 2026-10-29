@@ -40,8 +40,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
             display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
           }}
         >
-          <Link href="/errors" style={{ flex: 1, fontSize: 20, fontWeight: 700, color: color.ink, textDecoration: "none" }}>
-            FieldGuide
+          <Link
+            href="/errors"
+            style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, fontSize: 20, fontWeight: 700, color: color.ink, textDecoration: "none" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/logo.png" alt="Alfamart" style={{ height: 28, width: "auto" }} />
+            <span>Field IT Knowledge Hub</span>
           </Link>
           {me && <span style={{ fontSize: 14, ...ui.muted }}>{me.displayName} · {me.position}</span>}
           <button onClick={logout} style={{ ...ui.btn, ...ui.small }}>Log out</button>

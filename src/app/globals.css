@@ -240,3 +240,56 @@ h2 {
 .fg-editor {
   overflow-wrap: anywhere;
 }
+
+.lg-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px 20px;
+  background: #e9eef3 url("/brand/bg.jpg") center / cover no-repeat;
+}
+.lg-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}
+@media (max-width: 700px) {
+  .lg-page {
+    background-image: url("/brand/bg-small.jpg");
+    background-position: 42% center;
+    padding-top: 20px;
+  }
+}
+.lg-wrap {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 440px;
+  padding: 28px 24px 24px;
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(20, 40, 70, 0.15);
+}
+.lg-wrap.wide {
+  max-width: 680px;
+}
+.lg-center {
+  margin-top: 20px;
+}
+.lg-foot {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.8);
+}
