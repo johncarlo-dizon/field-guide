@@ -13,7 +13,8 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
     "user": "tsx scripts/users.ts",
-    "restore": "tsx scripts/restore.ts"
+    "restore": "tsx scripts/restore.ts",
+    "reocr": "tsx scripts/reocr.ts"
   },
   "dependencies": {
     "@tiptap/extension-highlight": "^3.32.0",
