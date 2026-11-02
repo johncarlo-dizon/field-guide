@@ -45,10 +45,10 @@ function Avatar({ name, size }: { name: string; size: number }) {
 
 function Logo() {
   return (
-    <div style={{ textAlign: "center" }}>
+    <div className="lg-brand">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/logo.png" alt="Alfamart" style={{ height: 48, width: "auto" }} />
-      <div style={{ marginTop: 8, fontSize: 15, fontWeight: 600, ...ui.muted }}>Field Support Knowledge Base</div>
+      <img className="lg-logo" src="/brand/logo.png" alt="Alfamart" />
+      <div className="lg-sub">Field Support Knowledge Base</div>
     </div>
   );
 }
@@ -271,11 +271,11 @@ export default function LoginScreen({ people, user }: { people: Person[]; user: 
         ) : selected ? (
           /* ---------- PIN step ---------- */
           <div className="lg-center">
-            <Avatar name={selected.displayName} size={72} />
-            <h1 style={{ margin: "14px 0 2px", fontSize: 24, textAlign: "center" }}>
+            <div className="lg-avatar"><Avatar name={selected.displayName} size={72} /></div>
+            <h1 className="lg-hi">
               {remembered ? `Welcome back, ${firstName}` : `Hi, ${firstName}`}
             </h1>
-            <div style={{ ...ui.muted, fontSize: 14 }}>{selected.position}</div>
+            <div className="lg-role">{selected.position}</div>
 
             <div className={shake ? "lg-dots lg-shake" : "lg-dots"} aria-label={`${pin.length} of 4 digits entered`}>
               {[0, 1, 2, 3].map((i) => (

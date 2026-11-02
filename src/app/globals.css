@@ -293,3 +293,123 @@ h2 {
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.8);
 }
+
+
+/* Brand header inside the login card */
+.lg-brand {
+  text-align: center;
+}
+.lg-logo {
+  height: 48px;
+  width: auto;
+}
+.lg-sub {
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #5f5f5f;
+}
+.lg-avatar {
+  display: flex;
+}
+.lg-hi {
+  margin: 14px 0 2px;
+  font-size: 24px;
+  text-align: center;
+}
+.lg-role {
+  font-size: 14px;
+  color: #5f5f5f;
+}
+
+/* Phones: a picture strip on top, and a white sheet that fills the rest of the screen */
+@media (max-width: 700px) {
+  .lg-page {
+    --hero: clamp(72px, 16vh, 150px);
+    justify-content: flex-start;
+    padding: 0;
+    background: #ffffff;
+  }
+  @supports (height: 100dvh) {
+    .lg-page {
+      --hero: clamp(72px, 16dvh, 150px);
+      min-height: 100dvh;
+    }
+  }
+  .lg-page::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    height: var(--hero);
+    background: #e9eef3 url("/brand/bg-small.jpg") center / cover no-repeat;
+  }
+  .lg-wrap,
+  .lg-wrap.wide {
+    max-width: none;
+    flex: 1 0 auto;
+    margin-top: calc(var(--hero) - 22px);
+    padding: 16px 16px 12px;
+    background: #ffffff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 0;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -8px 24px rgba(20, 40, 70, 0.12);
+  }
+  .lg-logo {
+    height: 34px;
+  }
+  .lg-sub {
+    margin-top: 4px;
+    font-size: 13px;
+  }
+  .lg-title {
+    margin: 14px 0 2px;
+    font-size: 22px;
+  }
+  .lg-center {
+    margin-top: 10px;
+  }
+  .lg-hi {
+    margin: 8px 0 0;
+    font-size: 22px;
+  }
+  .lg-dots {
+    margin: 12px 0 4px;
+  }
+  .lg-msg {
+    min-height: 20px;
+  }
+  .lg-pad {
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .lg-key {
+    height: clamp(44px, 8.2vh, 60px);
+    font-size: 22px;
+  }
+  .lg-link {
+    margin-top: 8px;
+  }
+  .lg-foot {
+    display: none;
+  }
+  .lg-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+  }
+}
+@media (max-width: 700px) and (max-height: 700px) {
+  .lg-avatar {
+    display: none;
+  }
+}
+@media (max-width: 700px) and (max-height: 620px) {
+  .lg-sub {
+    display: none;
+  }
+}
