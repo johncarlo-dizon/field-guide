@@ -92,3 +92,40 @@ export const processBlocks = pgTable("process_blocks", {
   attachmentId: uuid("attachment_id").references(() => attachments.id),
   caption: text("caption").notNull().default(""),
 }, (t) => [index("process_blocks_process_idx").on(t.processId)]);
+
+
+
+/* ---------- Equipment: equipment > parts > text and picture blocks ---------- */
+
+export const equipment = pgTable("equipment", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  category: text("category").notNull().default(""),
+  modelNumber: text("model_number").notNull().default(""),
+  summary: text("summary").notNull().default(""), // a short "what it is for"
+  authorId: uuid("author_id").notNull().references(() => users.id),
+  createdAt: createdAt(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  deletedAt: ts("deleted_at"),
+  version: integer("version").notNull().default(1),
+}, (t) => [
+  index("equipment_author_idx").on(t.authorId),
+  index("equipment_category_idx").on(t.category),
+]);
+
+export const equipmentParts = pgTable("equipment_parts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  equipmentId: uuid("equipment_id").notNull().references(() => equipment.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(),
+  title: text("title").notNull(), // for example "End A (round plug)"
+}, (t) => [index("equipment_parts_equipment_idx").on(t.equipmentId)]);
+
+export const equipmentBlocks = pgTable("equipment_blocks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  partId: uuid("part_id").notNull().references(() => equipmentParts.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(),
+  type: text("type", { enum: ["text", "image"] }).notNull(),
+  content: text("content").notNull().default(""),
+  attachmentId: uuid("attachment_id").references(() => attachments.id),
+  caption: text("caption").notNull().default(""),
+}, (t) => [index("equipment_blocks_part_idx").on(t.partId)]);
