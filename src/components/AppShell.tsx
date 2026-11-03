@@ -28,6 +28,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const tabs = [
     { href: "/errors", label: "Errors" },
     { href: "/procedures", label: "Procedures" },
+    { href: "/equipment", label: "Equipment" },
     ...(me?.role === "admin" ? [{ href: "/admin/users", label: "Users" }] : []),
   ];
 
@@ -55,7 +56,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px" }}>
                 <nav style={{ paddingTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 14, background: "#ebebeb" }}>
+          <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 14, background: "#ebebeb", maxWidth: "100%", overflowX: "auto" }}>
             {tabs.map((t) => {
               const active = path === t.href || path.startsWith(t.href + "/");
               return (
@@ -63,7 +64,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   key={t.href}
                   href={t.href}
                   style={{
-                    padding: "8px 20px", borderRadius: 10, fontSize: 15, fontWeight: 600,
+                                       padding: "8px 14px", borderRadius: 10, fontSize: 15, fontWeight: 600, whiteSpace: "nowrap",
                     background: active ? color.dark : "transparent",
                     color: active ? "#ffffff" : color.ink,
                   }}

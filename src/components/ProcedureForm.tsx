@@ -1,7 +1,7 @@
-"use client";
+ "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import AppShell from "@/components/AppShell";
 import BlockItem, { type BlockData } from "@/components/BlockItem";
 import TextEditor from "@/components/TextEditor";
@@ -24,6 +24,26 @@ export type ProcPayload = {
   processes: { title: string; blocks: PayloadBlock[] }[];
 };
 
+// The words shown on the form, so the same form can serve procedures and equipment.
+export type FormLabels = {
+  title: string;
+  titleHint: string;
+  part: string;
+  partHint: string;
+  addPart: string;
+  untitled: string;
+  noun: string;
+};
+const DEFAULT_LABELS: FormLabels = {
+  title: "Title",
+  titleHint: "For example: Grand Opening",
+  part: "Process name",
+  partHint: "For example: POS configuration",
+  addPart: "+ Add process",
+  untitled: "Untitled process",
+  noun: "process",
+};
+
 type Props = {
   heading: string;
   backHref: string;
@@ -31,6 +51,8 @@ type Props = {
   submitLabel: string;
   initial?: ProcInitial;
   openIndex?: number | null; // which process to open (and scroll to) first
+  labels?: Partial<FormLabels>;
+  extra?: ReactNode; // extra fields shown under the title
   // Return an error message to show, or null when saved (the page then navigates away)
   onSubmit: (p: ProcPayload) => Promise<string | null>;
 };
@@ -69,11 +91,13 @@ const toPayload = (b: B): PayloadBlock =>
     : { type: "image", attachmentId: b.attachmentId, caption: b.caption };
 
 export default function ProcedureForm({
-  heading, backHref, backLabel, submitLabel, initial, openIndex, onSubmit,
+  heading, backHref, backLabel, submitLabel, initial, openIndex, labels, extra, onSubmit,
 }: Props) {
+  const L: FormLabels = { ...DEFAULT_LABELS, ...labels };
+
   const nextKey = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
-  const targetRef = useRef<number | null>(null); // the process that receives a pasted picture
+  const targetRef = useRef<number | null>(null); // the part that receives a pasted picture
   const procRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -91,8 +115,7 @@ export default function ProcedureForm({
       }),
     }))
   );
-  const [openProcs, setOpenProcs] = useState<Record<number, boolean>>({}); // expanded processes
-
+  const [openProcs, setOpenProcs] = useState<Record<number, boolean>>({}); // expanded parts
   const [composer, setComposer] = useState<Composer>(null);
   const [draftText, setDraftText] = useState("");
   const [pending, setPending] = useState<Pending[]>([]);
@@ -114,7 +137,7 @@ export default function ProcedureForm({
     []
   );
 
-  // Open the process the person came from, and scroll to it.
+  // Open the part the person came from, and scroll to it.
   useEffect(() => {
     if (openIndex == null) return;
     const p = procsRef.current[openIndex];
@@ -133,7 +156,7 @@ export default function ProcedureForm({
     async (file: File, target: number | null) => {
       setMsg("");
       if (target === null) {
-        setMsg("Open a process and click inside it first, then paste the picture.");
+        setMsg(`Open a ${L.noun} and click inside it first, then paste the picture.`);
         return;
       }
       setUploading((n) => n + 1);
@@ -155,10 +178,10 @@ export default function ProcedureForm({
         ]);
       }
     },
-    [updBlocks]
+    [updBlocks, L.noun]
   );
 
-  // Ctrl+V pastes a screenshot into the open process you last clicked in
+  // Ctrl+V pastes a screenshot into the open part you last clicked in
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
       const files: File[] = [];
@@ -195,11 +218,11 @@ export default function ProcedureForm({
       }
       if (!found) setMsg("No picture on the clipboard. Take a screenshot first (Win+Shift+S).");
     } catch {
-      setMsg("The browser blocked clipboard access. Click inside the process and press Ctrl+V instead.");
+      setMsg(`The browser blocked clipboard access. Click inside the ${L.noun} and press Ctrl+V instead.`);
     }
   }
 
-  /* ---------- processes ---------- */
+  /* ---------- parts ---------- */
 
   function addProcess() {
     const key = nextKey.current++;
@@ -213,7 +236,7 @@ export default function ProcedureForm({
   const setProcTitle = (key: number, t: string) =>
     setProcs((l) => l.map((p) => (p.key === key ? { ...p, title: t } : p)));
   function removeProc(key: number) {
-    if (!confirm("Remove this process and everything in it?")) return;
+    if (!confirm(`Remove this ${L.noun} and everything in it?`)) return;
     if (composer?.pkey === key) closeComposer();
     setProcs((l) => l.filter((p) => p.key !== key));
   }
@@ -230,7 +253,7 @@ export default function ProcedureForm({
     setOpenProcs((o) => ({ ...o, [key]: !o[key] }));
   }
 
-  /* ---------- the card that opens under a process's buttons ---------- */
+  /* ---------- the card that opens under a part's buttons ---------- */
 
   function closeComposer() {
     const c = composer;
@@ -275,7 +298,7 @@ export default function ProcedureForm({
     setComposer(null);
   }
 
-  /* ---------- blocks already added to a process ---------- */
+  /* ---------- blocks already added to a part ---------- */
 
   const setContent = (pkey: number, key: number, content: string) =>
     updBlocks(pkey, (b) => b.map((x) => (x.key === key && x.type === "text" ? { ...x, content } : x)));
@@ -295,13 +318,13 @@ export default function ProcedureForm({
 
   async function save() {
     setMsg("");
-    if (!title.trim()) { setMsg("Please add a title"); return; }
+    if (!title.trim()) { setMsg(`${L.title} is required`); return; }
 
     const out: ProcPayload["processes"] = [];
     for (const p of procs) {
       if (!p.title.trim()) {
         setOpenProcs((o) => ({ ...o, [p.key]: true }));
-        setMsg("Every process needs a name");
+        setMsg(`Every ${L.noun} needs a name`);
         return;
       }
       const blocks: PayloadBlock[] = p.blocks.map(toPayload);
@@ -332,12 +355,13 @@ export default function ProcedureForm({
 
         <div style={ui.card}>
           <label>
-            <b>Title</b>
+            <b>{L.title}</b>
             <input
               value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200}
-              placeholder="For example: Grand Opening" style={ui.field}
+              placeholder={L.titleHint} style={ui.field}
             />
           </label>
+          {extra}
         </div>
 
         {procs.map((p, i) => {
@@ -379,7 +403,7 @@ export default function ProcedureForm({
                     {i + 1}
                   </span>
                   <b style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {p.title.trim() || "Untitled process"}
+                    {p.title.trim() || L.untitled}
                   </b>
                   <span style={{ flex: "none", fontSize: 13, ...ui.muted }}>
                     {p.blocks.length} {p.blocks.length === 1 ? "item" : "items"}
@@ -393,10 +417,10 @@ export default function ProcedureForm({
               {isOpen && (
                 <div style={{ padding: "0 16px 16px", borderTop: "1px solid #eee" }}>
                   <label style={{ display: "block", marginTop: 14 }}>
-                    <b style={{ fontSize: 14 }}>Process name</b>
+                    <b style={{ fontSize: 14 }}>{L.part}</b>
                     <input
                       value={p.title} onChange={(e) => setProcTitle(p.key, e.target.value)} maxLength={200}
-                      autoFocus={!p.title} placeholder="For example: POS configuration" style={ui.field}
+                      autoFocus={!p.title} placeholder={L.partHint} style={ui.field}
                     />
                   </label>
 
@@ -525,7 +549,7 @@ export default function ProcedureForm({
           }}
         />
 
-        <button type="button" onClick={addProcess} style={{ ...ui.btn, width: "100%" }}>+ Add process</button>
+        <button type="button" onClick={addProcess} style={{ ...ui.btn, width: "100%" }}>{L.addPart}</button>
 
         {msg && <p style={{ color: "#c0392b" }}>{msg}</p>}
 
