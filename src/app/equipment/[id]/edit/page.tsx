@@ -21,25 +21,18 @@ export default function EditEquipment() {
   const router = useRouter();
   const id = String(params.id);
   const [initial, setInitial] = useState<ProcInitial | null>(null);
-  const [category, setCategory] = useState("");
-  const [model, setModel] = useState("");
   const [summary, setSummary] = useState("");
-  const [cats, setCats] = useState<string[]>([]);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
     (async () => {
-      const [res, list] = await Promise.all([fetch(`/api/equipment/${id}`), fetch("/api/equipment")]);
+      const res = await fetch(`/api/equipment/${id}`);
       if (res.status === 401) { window.location.href = "/"; return; }
       const data = await res.json().catch(() => ({}));
-      const all = await list.json().catch(() => ({}));
-      if (all.ok) setCats(all.categories ?? []);
       if (!data.ok) { setMsg(data.error ?? "Could not load this equipment"); return; }
 
       const e = data.equipment;
       if (!e.canEdit) { setMsg(`Only ${e.authorName} can edit this equipment.`); return; }
-      setCategory(e.category);
-      setModel(e.modelNumber);
       setSummary(e.summary);
       setInitial({
         title: e.name,
@@ -60,7 +53,7 @@ export default function EditEquipment() {
     const res = await fetch(`/api/equipment/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: p.title, category, modelNumber: model, summary, parts: p.processes }),
+      body: JSON.stringify({ name: p.title, summary, parts: p.processes }),
     });
     if (res.status === 401) { window.location.href = "/"; return null; }
     const data = await res.json().catch(() => ({}));
@@ -94,14 +87,7 @@ export default function EditEquipment() {
       submitLabel="Save changes"
       initial={initial}
       labels={EQ_LABELS}
-      extra={
-        <EquipmentFields
-          category={category} setCategory={setCategory}
-          model={model} setModel={setModel}
-          summary={summary} setSummary={setSummary}
-          categories={cats}
-        />
-      }
+      extra={<EquipmentFields summary={summary} setSummary={setSummary} />}
       onSubmit={submit}
     />
   );

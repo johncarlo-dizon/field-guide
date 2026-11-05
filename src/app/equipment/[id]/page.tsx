@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import AppShell from "@/components/AppShell";
 import RichText from "@/components/RichText";
-import { badge, color, ui } from "@/lib/ui";
+import { color, ui } from "@/lib/ui";
 
 type Block = {
   id: string;
@@ -104,10 +104,7 @@ export default function EquipmentDetail() {
       {e && (
         <>
           <h1 style={{ margin: "8px 0 8px", fontSize: 26, lineHeight: 1.25 }}>{e.name}</h1>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 14, ...ui.muted }}>
-            {e.category && <span style={badge(color.dark)}>{e.category}</span>}
-            {e.modelNumber && <span>Model {e.modelNumber}</span>}
-          </div>
+         
 
           {e.summary && (
             <div style={{ ...ui.card, marginTop: 14 }}>

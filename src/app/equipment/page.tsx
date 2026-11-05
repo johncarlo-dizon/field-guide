@@ -8,8 +8,6 @@ import { color, ui } from "@/lib/ui";
 type Row = {
   id: string;
   name: string;
-  category: string;
-  modelNumber: string;
   summary: string;
   partCount: number;
   coverId: string | null;
@@ -17,27 +15,19 @@ type Row = {
 
 export default function EquipmentPage() {
   const [q, setQ] = useState("");
-  const [category, setCategory] = useState("");
   const [rows, setRows] = useState<Row[] | null>(null);
-  const [cats, setCats] = useState<string[]>([]);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(async () => {
-      const params = new URLSearchParams({ q, category });
-      const res = await fetch("/api/equipment?" + params.toString());
+      const res = await fetch("/api/equipment?q=" + encodeURIComponent(q));
       if (res.status === 401) { window.location.href = "/"; return; }
       const data = await res.json().catch(() => ({}));
-      if (data.ok) { setRows(data.equipment); setCats(data.categories ?? []); setMsg(""); }
+      if (data.ok) { setRows(data.equipment); setMsg(""); }
       else setMsg(data.error ?? "Could not load the equipment");
     }, 250);
     return () => clearTimeout(timer);
-  }, [q, category]);
-
-  const chip = (active: boolean) => ({
-    ...ui.btn, ...ui.small, borderRadius: 99, whiteSpace: "nowrap" as const,
-    ...(active ? ui.dark : {}),
-  });
+  }, [q]);
 
   return (
     <AppShell>
@@ -67,15 +57,6 @@ export default function EquipmentPage() {
           + Add equipment
         </Link>
       </div>
-
-      {cats.length > 0 && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-          <button style={chip(category === "")} onClick={() => setCategory("")}>All</button>
-          {cats.map((c) => (
-            <button key={c} style={chip(category === c)} onClick={() => setCategory(c)}>{c}</button>
-          ))}
-        </div>
-      )}
 
       {msg && <p style={{ color: color.danger }}>{msg}</p>}
       {rows === null && !msg && <p style={ui.muted}>Loading...</p>}
@@ -109,12 +90,7 @@ export default function EquipmentPage() {
               )}
             </div>
             <div style={{ padding: 12 }}>
-              <b style={{ fontSize: 16, lineHeight: 1.3 }}>{r.name}</b>
-              {(r.category || r.modelNumber) && (
-                <div style={{ marginTop: 4, fontSize: 13, ...ui.muted }}>
-                  {[r.category, r.modelNumber].filter(Boolean).join(" · ")}
-                </div>
-              )}
+              <b style={{ fontSize: 16, lineHeight: 1.3, overflowWrap: "anywhere" }}>{r.name}</b>
               {r.summary && (
                 <div
                   style={{
