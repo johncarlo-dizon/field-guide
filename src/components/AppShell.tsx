@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { color, ui } from "@/lib/ui";
-
+import { APP_NAME } from "@/lib/brand";
 type Me = { id: string; displayName: string; position: string; role: string };
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -47,7 +47,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/logo.png" alt="Alfamart" style={{ height: 28, width: "auto" }} />
-            <span>Field IT Knowledge Hub</span>
+                        <span style={{ fontSize: 18 }}>{APP_NAME}</span>
           </Link>
           {me && <span style={{ fontSize: 14, ...ui.muted }}>{me.displayName} · {me.position}</span>}
           <button onClick={logout} style={{ ...ui.btn, ...ui.small }}>Log out</button>

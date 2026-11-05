@@ -1,5 +1,5 @@
 import { itemTree, parseText, type Li } from "@/lib/richtext";
-
+import { APP_NAME } from "@/lib/brand";
 export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
@@ -278,10 +278,10 @@ export function pageHtml(o: {
   dataJson: string;
 }): string {
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FieldGuide offline copy</title><style>${CSS}</style></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(APP_NAME)}</title><style>${CSS}</style></head>
 <body>
 <header><div class="wrap">
-<h1>FieldGuide offline copy</h1>
+<h1>${esc(APP_NAME)}</h1>
 <div class="sub">Made on ${esc(o.date)} by ${esc(o.by)}. Read only. Download a new copy on the company network to refresh it.</div>
 <div class="tabs"><button class="tab on" data-kind="errors">Errors (${o.errorCount})</button><button class="tab" data-kind="procedures">Procedures (${o.procCount})</button></div>
 <input id="q" type="search" placeholder="Describe the problem, in your own words" aria-label="Search">

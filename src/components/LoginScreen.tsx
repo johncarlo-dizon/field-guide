@@ -6,7 +6,7 @@ import { color, ui } from "@/lib/ui";
 type Me = { id: string; displayName: string; position: string; role: string; mustChangePin: boolean };
 type Person = { id: string; displayName: string; position: string };
 type Reply = { status: number; ok?: boolean; error?: string; user?: Me };
-
+import { APP_NAME } from "@/lib/brand";
 const LAST = "fg_last_user";
 
 async function api(url: string, body?: unknown): Promise<Reply> {
@@ -48,7 +48,7 @@ function Logo() {
     <div className="lg-brand">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="lg-logo" src="/brand/logo.png" alt="Alfamart" />
-      <div className="lg-sub">Field Support Knowledge Base</div>
+      <div className="lg-sub" style={{ color: "#171717", fontSize: 17, fontWeight: 700 }}>{APP_NAME}</div>
     </div>
   );
 }

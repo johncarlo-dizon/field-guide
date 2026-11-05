@@ -11,7 +11,7 @@ import { absPath } from "@/lib/uploads";
 import { parseText } from "@/lib/richtext";
 import { windows } from "@/lib/search";
 import { esc, pageHtml, richToHtml, safeJson } from "@/lib/export-html";
-
+import { APP_SLUG } from "@/lib/brand";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -223,7 +223,7 @@ export async function GET(req: Request) {
     return new NextResponse(html, {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Content-Disposition": `attachment; filename="FieldGuide-offline-${date}.html"`,
+        "Content-Disposition": `attachment; filename="${APP_SLUG}-offline-${date}.html"`,
         "Cache-Control": "no-store",
       },
     });

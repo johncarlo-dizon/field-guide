@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
-import { Public_Sans } from "next/font/google";
 import "./globals.css";
+import { Public_Sans } from "next/font/google";
+import { APP_NAME } from "@/lib/brand";
+
 const font = Public_Sans({ subsets: ["latin"], weight: ["400", "600", "700"], display: "swap" });
 
 export const metadata = {
-  title: "FieldGuide",
-  description: "Field support knowledge base",
+  title: APP_NAME,
+  description: "Errors, procedures and equipment for field IT support",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
