@@ -19,16 +19,16 @@ type Row = {
 type Team = { errors: number; procedures: number; equipment: number; total: number };
 
 const RANGES = [
-  ["month", "This month"],
-  ["90", "Last 90 days"],
-  ["year", "This year"],
   ["all", "All time"],
+  ["year", "This year"],
+  ["90", "Last 90 days"],
+  ["month", "This month"],
 ] as const;
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export default function Contributors() {
-  const [range, setRange] = useState<string>("month");
+  const [range, setRange] = useState<string>("all");
   const [rows, setRows] = useState<Row[] | null>(null);
   const [team, setTeam] = useState<Team | null>(null);
   const [msg, setMsg] = useState("");

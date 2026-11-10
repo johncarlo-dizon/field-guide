@@ -24,8 +24,8 @@ export async function GET(req: Request) {
     const me = await getCurrentUser();
     if (!me) return NextResponse.json({ ok: false, error: "Not logged in" }, { status: 401 });
 
-    const asked = new URL(req.url).searchParams.get("range") ?? "month";
-    const range: Range = (RANGES as readonly string[]).includes(asked) ? (asked as Range) : "month";
+    const asked = new URL(req.url).searchParams.get("range") ?? "all";
+    const range: Range = (RANGES as readonly string[]).includes(asked) ? (asked as Range) : "all";
     const since = startOf(range);
 
     const errRows = await db
